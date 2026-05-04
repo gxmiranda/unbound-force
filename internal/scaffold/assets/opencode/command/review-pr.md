@@ -286,6 +286,53 @@ Search for a specification that matches this PR across all spec directories:
 - If an OpenSpec proposal is found, read only the **Capabilities** and **Impact** sections
 - If no spec is found in any directory or in the PR's changed files, note this and use the PR title and description as the intent source
 
+#### 6a. Resolve Linked Issues
+
+Parse the PR body (from Step 2 metadata) for issue
+references using case-insensitive regex:
+- `Fixes #N`, `Closes #N`, `Resolves #N`
+- GitHub URL variants:
+  `Fixes https://github.com/<owner>/<repo>/issues/N`
+
+**Validation and limits**:
+- Validate each parsed issue number as a positive
+  integer (digits only). Discard non-numeric values.
+- URL-format references: validate they belong to the
+  same `{owner}/{repo}` as the PR. List cross-repo
+  references in the output as "cross-repo — not
+  validated" but do NOT fetch them.
+- Limit to 5 linked issues maximum. If more than 5
+  are found, list extras as "listed but not fetched"
+  in the output.
+
+**Fetching**: For each in-scope linked issue:
+
+```bash
+gh issue view <N> --json title,body,labels
+```
+
+**Untrusted input handling**: Issue body content is
+user-controlled. Before incorporating into the review
+context:
+- Truncate to a maximum of 2000 characters.
+
+**Error handling**: If `gh issue view` returns 404,
+403, or times out, log the error, skip that issue, and
+note in the `### Linked Issues` section as "fetch
+failed". The review continues without blocking.
+
+**Acceptance criteria extraction**: From each fetched
+issue body, extract:
+- Checkbox lines (`- [ ]` or `- [x]`)
+- Content under an `## Acceptance Criteria` heading
+
+If neither exists, use the issue title and body as
+general intent context for the alignment check
+(Step 8a).
+
+Record the linked issues and their acceptance criteria
+for use in Step 8a and Step 9.
+
 ### 7. Load Convention Packs (Optional)
 
 Check if convention packs are available for enhanced review precision:
@@ -311,14 +358,48 @@ Use pack rules (CS-001, AP-001, SC-001, TC-001, DR-001, etc.) alongside the cons
 
 Focus AI analysis exclusively on what deterministic tools and CI cannot check. Skip any category where local tools or CI already passed.
 
+**Path-based review focus**: Before starting the review,
+classify each changed file against these built-in
+heuristics. Record the focus category for each file
+(used in the Walkthrough output and as additive review
+context):
+
+| Path pattern | Focus category | Additional emphasis |
+|-------------|---------------|-------------------|
+| `*_test.go`, `*_test.py`, `**/__tests__/**`, `**/*_spec.*` | `test-quality` | Edge cases, assertion strength, mock isolation, test naming |
+| `**/cmd/**`, `**/cli/**` | `cli-ux` | Error messages, flag validation, help text |
+| `**/api/**`, `**/handler/**`, `**/middleware/**`, `**/routes/**` | `security` | Auth, input validation, injection |
+| `*.md`, `docs/**` | `documentation` | Clarity, accuracy, broken links |
+| `.github/workflows/**`, `Dockerfile*` | `ci-cd` | Permissions, pinned versions, secrets exposure |
+| `go.mod`, `package.json`, `requirements.txt` | `dependencies` | Maintenance status, license, scope |
+| Everything else | `standard` | Architecture, SOLID, coupling, baseline security |
+
+Path focus is **additive** — it supplements the standard
+review categories (alignment, security, constitution),
+not replaces them. Step 8b (Security Review) applies to
+ALL changed files regardless of path heuristic.
+
+When reviewing each file, append the matched focus
+instruction to the review context for that file.
+
+**Walkthrough generation**: While analyzing each file's
+diff, generate a one-line change summary describing
+what changed (e.g., "Add error handling for null
+inputs"), not how (no code snippets). Record the
+summary and focus category for each file — these are
+used in the `### Walkthrough` output section (Step 9).
+For PRs with 30+ files, generate directory-level
+summaries instead of per-file summaries.
+
 #### 8a. Alignment Check
 
-Compare the PR intent (title + description + linked spec) against the actual code changes:
+Compare the PR intent (title + description + linked spec + linked issues) against the actual code changes:
 
 - **Scope alignment**: Do the changed files match what the spec/description says should change? Flag files modified outside the stated scope.
 - **Requirement coverage**: For each requirement in the spec (if found), verify the code changes address it. Flag uncovered requirements.
 - **Completeness**: Are there partial implementations that could leave the system in an inconsistent state?
 - **Drift detection**: Does the code do anything NOT described in the intent/spec? Flag undocumented behavioral changes.
+- **Issue criteria coverage**: For each acceptance criterion from linked issues (Step 6a), verify the code changes address it. Report uncovered criteria as MEDIUM findings with per-criterion status (COVERED / NOT COVERED / PARTIAL).
 
 #### 8b. Security Review
 
@@ -376,8 +457,31 @@ Present findings in this structured format:
 ### Local Tool Results
 <Table showing which tools ran, pass/fail status, and summary of failures if any>
 
+### Walkthrough
+| File | Change | Focus |
+|------|--------|-------|
+| `internal/gateway/provider.go` | Add token expiry tracking | security |
+| `internal/gateway/gateway_test.go` | Add regression test for stale tokens | test-quality |
+| `cmd/unbound-force/gateway.go` | Register --provider flag | cli-ux |
+
+<For PRs with 30+ files, group by directory with counts:>
+| Directory | Files | Summary | Focus |
+|-----------|-------|---------|-------|
+| `internal/gateway/` | 3 | Token refresh and provider detection | security |
+
+### Linked Issues
+<Only include this section if Step 6a found linked issues>
+| Issue | Title | Criteria |
+|-------|-------|----------|
+| #38 | Export metrics to CSV | 3/4 COVERED |
+|      | | ✓ CSV export with headers |
+|      | | ✓ Date range filtering |
+|      | | ✓ Output to stdout or file |
+|      | | ✗ Support custom delimiters |
+| #999 | (fetch failed) | — |
+
 ### Summary
-<1-2 sentence overview of what the PR does and overall assessment>
+<1-2 sentence assessment of what the PR does and overall quality. When a Walkthrough is present, the Summary serves as an assessment summary (overall verdict context), not a structural overview — the Walkthrough fills that role.>
 
 ### Alignment
 - <Finding with severity>
@@ -504,45 +608,136 @@ I will create the branch and commit locally — you can review the changes and f
   I recommend investigating this separately rather than proposing an automated fix.
   ```
 
-### 11. Offer In-line PR Comments
+### 11. Offer Verdict-aligned PR Review
 
-After presenting the summary, if there are findings with severity HIGH or above, offer to post them as in-line comments on the PR:
+After presenting the review, if there are findings with
+severity HIGH or above, offer to post them as a formal
+GitHub review on the PR:
 
 ```
-I found <N> findings (X CRITICAL, Y HIGH). Would you like me to post in-line comments on the PR so the author can see them in context?
+I found <N> findings (X CRITICAL, Y HIGH).
+Verdict: <APPROVE / REQUEST CHANGES / COMMENT>
 
-I will prepare the comments and show them to you for approval before posting anything.
+Would you like me to post this as a GitHub review so the
+author can see the findings in context?
+
+I will prepare the review and show it to you for approval
+before posting anything.
 ```
 
 **If the user agrees**:
 
-1. **Prepare comments**: For each finding that maps to a specific file and line range in the diff, prepare an in-line comment with:
+1. **Prepare comments**: For each finding that maps to a
+   specific file and line range in the diff, prepare an
+   in-line comment with:
    - The finding description
    - The severity level
-   - A concrete suggestion for fixing the issue (if applicable)
-   - Cap at 15 comments maximum. If more than 15 findings qualify, prioritize CRITICAL over HIGH. For remaining findings beyond the cap, include them in a single summary comment.
+   - A concrete suggestion for fixing the issue
 
-2. **Show all comments for human review**: Present each prepared comment in this format:
+   **Suggestion block format**: When a finding has a
+   concrete single-file code fix (literal replacement),
+   format it using GitHub's suggestion block syntax:
+
+   ````
+   **[HIGH] Description of the issue**
+
+   ```suggestion
+   corrected code here
+   ```
+   ````
+
+   Use suggestion blocks ONLY for literal code
+   replacements that can be applied as-is. MUST NOT use
+   suggestion blocks for:
+   - Architectural or design recommendations
+   - Multi-file changes
+   - Removal of security controls (input validation,
+     auth checks, error handling, lint suppressions)
+
+   For these cases, use plain text with an explanation.
+
+   Cap at 15 comments maximum. If more than 15 findings
+   qualify, prioritize CRITICAL over HIGH. Include
+   remaining findings in the review body summary.
+
+2. **Show all comments for human review**: Present each
+   prepared comment with its full before/after context:
    ```
    File: <path>
    Line: <line_number>
-   Body: <comment text>
+   Type: suggestion / plain-text
+   Body: <comment text with suggestion block if applicable>
    ```
 
-3. **Wait for explicit confirmation**: Ask "Post these comments? (yes/no/edit)"
-   - **yes**: Post comments using the `gh` CLI. For a summary comment, write the body to a temporary file and use `--body-file` to avoid shell injection from AI-generated text:
-     ```bash
-     gh pr review <PR_NUMBER> --comment --body-file <temp-summary-file>
-     ```
-     For in-line comments, use the GitHub API with a JSON input file:
-     ```bash
-     gh api repos/{owner}/{repo}/pulls/<PR_NUMBER>/reviews \
-       --method POST \
-       --input <json-file-with-comments>
-     ```
-     The JSON file should contain the review body, event type, and inline comments array.
-     Always write comment payloads to temporary files rather than interpolating AI-generated text into shell arguments, to prevent shell injection. Remove temporary files after posting. If `gh api` returns a 403 or permission error, inform the user that their token lacks write permissions for PR comments and suggest re-authenticating with `gh auth login`.
-   - **no**: Skip posting, the summary is sufficient
+3. **Verdict-aligned confirmation**: Map the verdict from
+   Step 9 to the GitHub API event type:
+   - APPROVE → `"event": "APPROVE"`
+   - REQUEST CHANGES → `"event": "REQUEST_CHANGES"`
+   - COMMENT → `"event": "COMMENT"`
+
+   Display the confirmation prompt with the verdict type:
+
+   For APPROVE verdicts:
+   ```
+   Post review as APPROVE with N comments?
+   ⚠ This may unblock merge in repos with branch
+     protection. This review will be labeled as
+     AI-generated.
+   Type "approve" to confirm:
+   (approve/no/edit/change-verdict)
+   ```
+
+   For REQUEST CHANGES or COMMENT verdicts:
+   ```
+   Post review as REQUEST CHANGES with N comments?
+   ⚠ This will block merge in repos with branch
+     protection.
+   (yes/no/edit/change-verdict)
+   ```
+
+   The `change-verdict` option lets the user override the
+   computed verdict (e.g., downgrade REQUEST CHANGES to
+   COMMENT).
+
+4. **Post as a single review event**: Construct a JSON
+   payload containing the event type, review body, and
+   inline comments array. Write the payload to a
+   temporary file and submit via:
+
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/<PR_NUMBER>/reviews \
+     --method POST \
+     --input <json-file>
+   ```
+
+   The review body MUST include the line:
+   `_This review was generated by /review-pr
+   (AI-assisted)._`
+
+   Always write the JSON payload to a temporary file
+   rather than interpolating AI-generated text into shell
+   arguments, to prevent shell injection. Remove the
+   temporary file after posting.
+
+   **Graceful degradation**: If `gh api` returns HTTP 403
+   or 422 (insufficient permissions, non-collaborator, or
+   self-review prohibition), fall back to posting as
+   `"event": "COMMENT"` with a note:
+   > "Note: Could not post as <original verdict> due to
+   > insufficient permissions. Posted as COMMENT instead.
+   > Original verdict: <APPROVE/REQUEST CHANGES>."
+
+   If the fallback also fails, inform the user that their
+   token lacks write permissions for PR reviews and
+   suggest re-authenticating with `gh auth login`.
+
+   - **no**: Skip posting, the terminal summary is sufficient
    - **edit**: Let the user modify comments before posting, then re-confirm
 
-4. **CRITICAL RULE**: NEVER post comments without explicit human confirmation. Always show the exact content that will be posted and wait for approval.
+5. **CRITICAL RULE**: NEVER post reviews without explicit
+   human confirmation. Always show the exact content
+   (verdict type + all comments) that will be posted and
+   wait for approval. For APPROVE verdicts, require the
+   user to type "approve" explicitly — not just "yes" —
+   to prevent reflexive confirmation of merge-unblocking
+   reviews.
