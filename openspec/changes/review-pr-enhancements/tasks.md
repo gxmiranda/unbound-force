@@ -1,87 +1,117 @@
 ## 1. Walkthrough Section
 
-- [ ] 1.1 Add `### Walkthrough` to Step 9 output format
+- [x] 1.1 Add `### Walkthrough` to Step 9 output format
   template, positioned after `### Local Tool Results`
-  and before `### Summary`. Format as a table with File
-  and Change columns, grouped by directory. (FR-016)
-- [ ] 1.2 Add instructions in Step 8 to generate a
+  and before `### Summary`. Format as a table with File,
+  Change, and Focus columns, grouped by directory. For
+  PRs with 30+ files, group by directory with counts
+  instead of per-file listings. (FR-016)
+- [x] 1.2 Add instructions in Step 8 to generate a
   one-line change summary per file during diff analysis.
   The summary describes what changed (e.g., "Add error
   handling for null inputs"), not how (no code snippets).
+  Classify each file against the path heuristics table
+  and record the focus category. (FR-016)
 
 ## 2. GitHub Suggestion Blocks
 
-- [ ] 2.1 Modify Step 11 comment preparation to detect
+- [x] 2.1 Modify Step 11 comment preparation to detect
   findings with concrete single-file code fixes and
   format them using GitHub suggestion block syntax
   (triple-backtick `suggestion` with the replacement
   code). (FR-017)
-- [ ] 2.2 Add guidance distinguishing when to use
+- [x] 2.2 Add guidance distinguishing when to use
   suggestion blocks (literal code replacements) vs plain
-  text (architectural, design, or multi-file
-  suggestions).
+  text (architectural, design, multi-file suggestions,
+  or removal of security controls). Each suggestion
+  block MUST appear in the Step 11 human review preview
+  with full before/after context. (FR-017)
 
 ## 3. Path-based Review Focus
 
-- [ ] 3.1 Add built-in path heuristics table to Step 8
+- [x] 3.1 Add built-in path heuristics table to Step 8
   with the 7 path categories (test, API/handler, CLI,
-  docs, CI/CD, dependencies, default). (FR-018)
-- [ ] 3.2 Add instructions to classify each changed file
+  docs, CI/CD, dependencies, default). Clarify that
+  Step 8b (Security Review) applies to ALL files
+  regardless of path heuristic. (FR-018)
+- [x] 3.2 Add instructions to classify each changed file
   against the heuristics table and append the matching
   focus instruction to the review context for that file.
   Path focus is additive — it supplements the standard
-  review categories, not replaces them.
+  review categories, not replaces them. (FR-018)
 
 ## 4. Issue Linking
 
-- [ ] 4.1 Add Step 6a after Step 6: parse issue
-  references from PR body using case-insensitive regex
-  for `Fixes #N`, `Closes #N`, `Resolves #N` and their
-  GitHub URL variants. (FR-019)
-- [ ] 4.2 For each linked issue, fetch details via
-  `gh issue view <N> --json title,body,labels`.
-  (FR-019)
-- [ ] 4.3 Extract acceptance criteria: checkbox lines
+- [x] 4.1 Add Step 6a after Step 6 (no renumbering of
+  subsequent steps): parse issue references from PR body
+  using case-insensitive regex for `Fixes #N`,
+  `Closes #N`, `Resolves #N` and their GitHub URL
+  variants. Validate issue numbers as positive integers.
+  Limit to 5 issues; list but do not fetch extras.
+  URL-format references to other repos: list but do not
+  fetch. (FR-019)
+- [x] 4.2 For each in-scope linked issue, fetch details
+  via `gh issue view <N> --json title,body,labels`.
+  Truncate issue body to 2000 characters before
+  incorporating into review context. If `gh issue view`
+  returns 404, 403, or timeout, skip with "fetch failed"
+  note. (FR-019, FR-019a)
+- [x] 4.3 Extract acceptance criteria: checkbox lines
   (`- [ ]` / `- [x]`) or content under an
-  `## Acceptance Criteria` heading. (FR-020)
-- [ ] 4.4 Modify Step 8a alignment check to include
-  issue acceptance criteria validation. Report uncovered
-  criteria as MEDIUM findings. (FR-020)
-- [ ] 4.5 Add `### Linked Issues` section to Step 9
+  `## Acceptance Criteria` heading. If neither exists,
+  use issue title and body as general intent context.
+  (FR-020)
+- [x] 4.4 Modify Step 8a alignment check to add a 5th
+  bullet: "Issue criteria coverage: For each acceptance
+  criterion from linked issues (Step 6a), verify the
+  code changes address it. Report uncovered criteria as
+  MEDIUM findings with per-criterion status (COVERED /
+  NOT COVERED / PARTIAL)." (FR-020)
+- [x] 4.5 Add `### Linked Issues` section to Step 9
   output format, positioned after `### Walkthrough`
-  and before `### Summary`. Omit the section entirely
+  and before `### Summary`. Show each issue with title,
+  criteria, and coverage status. Show "fetch failed"
+  for unfetchable issues. Omit the section entirely
   when no issues are linked. (FR-021)
 
 ## 5. Verdict-aligned Review Posting
 
-- [ ] 5.1 Modify Step 11 to map the verdict from Step 9
+- [x] 5.1 Modify Step 11 to map the verdict from Step 9
   to the corresponding `gh api` event type: APPROVE →
   `"event": "APPROVE"`, REQUEST CHANGES →
   `"event": "REQUEST_CHANGES"`, COMMENT →
-  `"event": "COMMENT"`. (FR-022)
-- [ ] 5.2 Replace the current two-step posting (separate
+  `"event": "COMMENT"`. Add graceful fallback: if API
+  returns 403/422, fall back to COMMENT with note.
+  (FR-022)
+- [x] 5.2 Replace the current two-step posting (separate
   summary comment + inline comments) with a single
-  `gh api repos/{owner}/{repo}/pulls/<N>/reviews` call
-  that includes event type, body, and comments array
-  in one JSON payload. (FR-023)
-- [ ] 5.3 Update the human confirmation prompt to show
+  `gh api repos/{owner}/{repo}/pulls/<N>/reviews` call.
+  Construct JSON payload in a temporary file and pass
+  via `--input <json-file>`. Preserve the existing
+  15-comment cap. (FR-023)
+- [x] 5.3 Update the human confirmation prompt to show
   the verdict type: "Post review as REQUEST CHANGES
-  with N comments? (yes/no/edit/change-verdict)". The
-  `change-verdict` option lets the user override the
-  computed verdict. (FR-024)
-- [ ] 5.4 Add a warning note when the verdict is APPROVE
-  or REQUEST_CHANGES, informing the user that posting
-  may affect merge eligibility in repos with branch
-  protection. (FR-025)
+  with N comments? (yes/no/edit/change-verdict)". For
+  APPROVE verdicts, require explicit "approve" text
+  instead of "yes". The `change-verdict` option lets
+  the user override the computed verdict. (FR-024,
+  FR-025)
+- [x] 5.4 Add AI-generated label to the review body:
+  `_This review was generated by /review-pr
+  (AI-assisted)._` (FR-026)
 
 ## 6. Scaffold Sync and Documentation
 
-- [ ] 6.1 Sync scaffold asset copy — ensure
+- [x] 6.1 Sync scaffold asset copy — ensure
   `internal/scaffold/assets/opencode/command/review-pr.md`
   is byte-identical to `.opencode/command/review-pr.md`.
-- [ ] 6.2 Update AGENTS.md PR Review section to document
+  Verify `go test ./internal/scaffold/... -run
+  TestScaffoldOutput` passes (drift detection).
+- [x] 6.2 Update AGENTS.md PR Review section to document
   new capabilities (walkthrough, suggestion blocks,
   path focus, issue linking, verdict-aligned posting).
-- [ ] 6.3 Add Recent Changes entry to AGENTS.md.
-- [ ] 6.4 Run `make check` — verify build, test, vet,
+- [x] 6.3 Add Recent Changes entry to AGENTS.md.
+- [x] 6.4 Run `make check` — verify build, test, vet,
   and lint all pass.
+<!-- spec-review: passed -->
+<!-- code-review: passed -->
