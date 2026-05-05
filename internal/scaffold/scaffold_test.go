@@ -3949,36 +3949,41 @@ func TestEnsureGitignore_Idempotent(t *testing.T) {
 	}
 }
 
-// TestUFInitAsset_GuidanceBlockPresence verifies the /uf-init
-// scaffold asset contains all 8 AGENTS.md guidance block
-// detection phrases. This catches missing or truncated blocks
-// without new test infrastructure. Added by Spec 030.
-func TestUFInitAsset_GuidanceBlockPresence(t *testing.T) {
-	content, err := assetContent("opencode/commands/uf-init.md")
+// TestAgentBriefAsset_GovernanceBlockPresence verifies the
+// /agent-brief scaffold asset contains all 8 behavioral rule
+// templates and the conditional governance sections. Governance
+// blocks moved from /uf-init Step 9 to /agent-brief verbatim
+// templates as part of agent-brief-consolidation. Added by
+// Spec 030, updated by agent-brief-consolidation.
+func TestAgentBriefAsset_GovernanceBlockPresence(t *testing.T) {
+	content, err := assetContent("opencode/commands/agent-brief.md")
 	if err != nil {
-		t.Fatalf("read uf-init.md asset: %v", err)
+		t.Fatalf("read agent-brief.md asset: %v", err)
 	}
 	text := string(content)
 
 	// Each entry is a detection phrase that must appear in the
-	// uf-init.md asset to confirm the guidance block is defined.
+	// agent-brief.md asset to confirm the governance block is
+	// defined in the verbatim template.
 	requiredPhrases := []struct {
 		block  string
 		phrase string
 	}{
-		{"Core Mission", "## Core Mission"},
-		{"Gatekeeping Value Protection", "Gatekeeping Value Protection"},
-		{"Workflow Phase Boundaries", "Workflow Phase Boundaries"},
-		{"CI Parity Gate", "CI Parity Gate"},
-		{"Review Council PR Prerequisite", "Review Council"},
-		{"Website Documentation Sync Gate", "Website Documentation"},
-		{"Spec-First Development", "Spec-First Development"},
-		{"Knowledge Retrieval", "Knowledge Retrieval"},
+		{"Gatekeeping", "**Gatekeeping**"},
+		{"Phase boundaries", "**Phase boundaries**"},
+		{"CI parity", "**CI parity**"},
+		{"Review council", "**Review council**"},
+		{"Branch protection", "**Branch protection**"},
+		{"Documentation gate", "**Documentation gate**"},
+		{"Website gate", "**Website gate**"},
+		{"Zero-waste", "**Zero-waste**"},
+		{"Specification Workflow", "## Specification Workflow"},
+		{"Knowledge Retrieval", "## Knowledge Retrieval"},
 	}
 
 	for _, rp := range requiredPhrases {
 		if !strings.Contains(text, rp.phrase) {
-			t.Errorf("uf-init.md asset missing guidance block %q (detection phrase %q not found)",
+			t.Errorf("agent-brief.md asset missing governance block %q (detection phrase %q not found)",
 				rp.block, rp.phrase)
 		}
 	}

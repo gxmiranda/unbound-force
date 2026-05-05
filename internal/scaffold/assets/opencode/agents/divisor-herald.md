@@ -36,7 +36,7 @@ informational note and proceed with standard workflows.
 
 Before writing, read:
 
-1. `AGENTS.md` — Project overview, recent changes, hero descriptions
+1. `CHANGELOG.md` — Recent changes; `AGENTS.md` — Project overview, hero descriptions
 2. `unbound-force.md` — Hero descriptions and team vision (for brand voice)
 3. `.opencode/uf/packs/content.md` — Content convention pack (focus on BA-NNN rules for Blog & Announcements and shared VB/FA/FT rules)
 4. `.opencode/uf/packs/content-custom.md` — Project-specific content rules (if present)

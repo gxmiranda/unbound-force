@@ -37,7 +37,7 @@ informational note and proceed with standard workflows.
 Before writing, read:
 
 1. `unbound-force.md` — Hero descriptions and team vision (primary brand voice reference)
-2. `AGENTS.md` — Project overview, capabilities, recent changes
+2. `CHANGELOG.md` — Recent changes; `AGENTS.md` — Project overview, capabilities
 3. `.opencode/uf/packs/content.md` — Content convention pack (focus on PR-NNN rules for Public Relations and shared VB/FA/FT rules)
 4. `.opencode/uf/packs/content-custom.md` — Project-specific content rules (if present)
 5. The spec or feature being communicated — understand what it does and why it matters

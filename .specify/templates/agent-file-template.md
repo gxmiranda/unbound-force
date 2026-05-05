@@ -20,9 +20,7 @@ Auto-generated from all feature plans. Last updated: [DATE]
 
 [LANGUAGE-SPECIFIC, ONLY FOR LANGUAGES IN USE]
 
-## Recent Changes
-
-[LAST 3 FEATURES AND WHAT THEY ADDED]
+See CHANGELOG.md for recent changes.
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

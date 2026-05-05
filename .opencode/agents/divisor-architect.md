@@ -155,7 +155,7 @@ Do NOT use `git diff` or review code files. Your scope is exclusively the specif
 - Does a newer spec's plan conflict with an older spec's design?
 - Are cross-spec dependencies documented?
 - Are shared concepts used consistently across specs?
-- Is AGENTS.md up to date with the combined picture from all specs?
+- Is CHANGELOG.md up to date with change entries? Is AGENTS.md up to date with structural changes?
 
 #### 6. Quickstart and Research Quality
 

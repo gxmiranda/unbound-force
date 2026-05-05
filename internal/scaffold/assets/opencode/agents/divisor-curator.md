@@ -51,7 +51,7 @@ informational note and proceed with the standard review.
 
 Before reviewing, read:
 
-1. `AGENTS.md` -- Project overview, behavioral constraints, recent changes, project structure
+1. `AGENTS.md` -- Project overview, behavioral constraints, project structure
 2. `.specify/memory/constitution.md` -- Constitution (if present)
 3. The relevant spec, plan, and tasks files under `specs/` for the current work
 4. `.opencode/uf/packs/severity.md` -- Shared severity definitions (MUST load for consistent severity classification)
@@ -98,8 +98,8 @@ Classify files as user-facing or internal based on path patterns:
 
 - Does this change modify user-facing behavior (CLI commands, agent capabilities, installation steps, workflows)?
 - If yes:
-  - Was `AGENTS.md` updated (Recent Changes, Project Structure, Active Technologies as applicable)?
-  - Do Recent Changes entries include `Spec:` paths to canonical specs under `openspec/specs/`?
+  - Was `CHANGELOG.md` updated with change entries?
+  - Was `AGENTS.md` updated if project structure or conventions changed?
   - Was `README.md` updated if project description or install steps changed?
 - If documentation updates were needed but missing, flag as MEDIUM.
 - Skip for internal-only changes (refactoring, test-only, CI-only).
