@@ -648,6 +648,11 @@ func installGaze(opts *Options, env doctor.DetectedEnvironment) stepResult {
 	}
 
 	// Fallback chain (D2): Homebrew → dnf → go install → skip.
+	skipResult := stepResult{
+		name:   "Gaze",
+		action: "skipped",
+		detail: "Homebrew not available. Download from https://github.com/unbound-force/gaze/releases",
+	}
 	method := opts.resolveMethod("gaze", env, "homebrew", "dnf", "go")
 	switch method {
 	case "homebrew":
@@ -659,17 +664,9 @@ func installGaze(opts *Options, env doctor.DetectedEnvironment) stepResult {
 		if result.action != "skipped" {
 			return result
 		}
-		return stepResult{
-			name:   "Gaze",
-			action: "skipped",
-			detail: "Homebrew not available. Download from https://github.com/unbound-force/gaze/releases",
-		}
+		return skipResult
 	default:
-		return stepResult{
-			name:   "Gaze",
-			action: "skipped",
-			detail: "Homebrew not available. Download from https://github.com/unbound-force/gaze/releases",
-		}
+		return skipResult
 	}
 }
 
@@ -837,6 +834,11 @@ func installReplicator(opts *Options, env doctor.DetectedEnvironment) stepResult
 	}
 
 	// Fallback chain (D2): Homebrew → dnf → go install → skip.
+	skipResult := stepResult{
+		name:   "Replicator",
+		action: "skipped",
+		detail: "Homebrew not available. Download from https://github.com/unbound-force/replicator/releases",
+	}
 	method := opts.resolveMethod("replicator", env, "homebrew", "dnf", "go")
 	switch method {
 	case "homebrew":
@@ -848,17 +850,9 @@ func installReplicator(opts *Options, env doctor.DetectedEnvironment) stepResult
 		if result.action != "skipped" {
 			return result
 		}
-		return stepResult{
-			name:   "Replicator",
-			action: "skipped",
-			detail: "Homebrew not available. Download from https://github.com/unbound-force/replicator/releases",
-		}
+		return skipResult
 	default:
-		return stepResult{
-			name:   "Replicator",
-			action: "skipped",
-			detail: "Homebrew not available. Download from https://github.com/unbound-force/replicator/releases",
-		}
+		return skipResult
 	}
 }
 
