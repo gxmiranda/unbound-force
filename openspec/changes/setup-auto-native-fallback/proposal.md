@@ -51,7 +51,7 @@ Fixes: https://github.com/unbound-force/unbound-force/issues/214
 
 5. Add `installViaGo()` helper for `go install` fallback,
    following the pattern in `installGolangciLint()`
-   (setup.go:780).
+    (setup.go:770).
 
 ## Capabilities
 

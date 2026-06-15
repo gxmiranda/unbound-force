@@ -47,11 +47,24 @@ resolved install method string. Logic:
 
 1. If `toolMethod(toolName)` returns a non-`"auto"` value,
    use that (per-tool override takes precedence).
-2. If `opts.PackageManager` is `"homebrew"`, `"dnf"`, or
-   `"apt"`, return that (global preference).
-3. If `opts.PackageManager` is `"auto"` (default):
+2. If `opts.PackageManager` is `"homebrew"` or `"dnf"`,
+   return that (global preference).
+3. If `opts.PackageManager` is `"apt"`, map to `"auto"`
+   and log an informational message ("apt support not
+   yet implemented, using auto-mode fallback"). This
+   avoids silent surprise — the user explicitly asked
+   for apt but gets auto behavior.
+4. If `opts.PackageManager` is `"auto"` (default):
    return `"auto"` (let the install function apply its
    own fallback chain using environment detection).
+
+`resolveMethod()` is intentionally **tool-agnostic** — it
+resolves the user's *preference*, not the tool's
+*capability*. It may return `"dnf"` for Dewey even though
+Dewey has no RPMs. Each install function is responsible
+for handling unsupported methods by falling through to
+the next tier (e.g., `installDewey()` receives `"dnf"`,
+has no dnf case, and falls through to `go install`).
 
 This keeps the resolution logic centralized while
 preserving the per-function fallback chains that differ
@@ -61,6 +74,8 @@ by tool (e.g., Dewey has no RPM path).
 duplicating the precedence logic across 4+ install
 functions. The `"auto"` passthrough preserves the
 existing fallback-chain pattern, which varies by tool.
+Tool-agnostic resolution prevents `resolveMethod()` from
+needing to know the distribution channels of every tool.
 
 **Constitution**: Composability First — each tool's
 install function retains its own fallback chain, so tools
@@ -109,10 +124,32 @@ Follows the `installGolangciLint()` pattern: calls
 `opts.ExecCmd("go", "install", goModule+"@latest")`.
 Returns a `stepResult` with `detail: "via go install"`.
 
+**Behavior by outcome**:
+- Go not in PATH (`LookPath("go")` fails): return
+  `stepResult{action: "skipped", detail: "Go not
+  available. Install Go or use Homebrew/dnf."}`.
+  `err` is nil (graceful degradation, not a failure).
+- `go install` succeeds: return
+  `stepResult{action: "installed", detail: "via go
+  install"}`.
+- `go install` fails (network, compilation, module not
+  found): return `stepResult{action: "failed",
+  detail: "go install failed — try: go install
+  <module>@latest", err: fmt.Errorf("go install %s:
+  %w", goModule, err)}`. Error is wrapped with context
+  per CS-006.
+- Dry-run: return `stepResult{action: "dry-run",
+  detail: "Would install: go install <module>@latest"}`.
+
 **Go module paths**:
 - Gaze: `github.com/unbound-force/gaze/cmd/gaze`
-- Dewey: `github.com/unbound-force/dewey`
+- Dewey: `github.com/unbound-force/dewey/cmd/dewey`
 - Replicator: `github.com/unbound-force/replicator/cmd/replicator`
+
+**Error wrapping**: All errors stored in `stepResult.err`
+across all install functions MUST be wrapped with
+operation context per Go convention pack CS-006 (e.g.,
+`fmt.Errorf("dnf install gh: %w", err)`).
 
 **Rationale**: Extracts the repeated `go install` pattern
 into a reusable helper, same as `installViaRpm()`.
@@ -129,8 +166,21 @@ needed). This differs from the GoReleaser RPM pattern
 used by `installViaRpm()`.
 
 The dnf repo may not be pre-configured on all systems.
-If `dnf install gh` fails, fall through to skip with the
-existing download link.
+Failure modes:
+- Repo not configured: `dnf` returns "No match for
+  argument: gh" — fast, clean failure.
+- Repo configured but network unreachable: `dnf` may
+  hang. `ExecCmd` inherits the process timeout; no
+  additional timeout handling is needed.
+- GPG key import: `-y` auto-accepts GPG keys from
+  configured repos. This is acceptable because the
+  user configured the repo themselves.
+
+On any `dnf install gh` failure, fall through to skip
+with an actionable message: "dnf install failed —
+configure the GitHub CLI repo:
+https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+or download from https://cli.github.com".
 
 **Rationale**: `gh` is not built with GoReleaser and does
 not follow the same RPM URL pattern. Using `dnf install`
@@ -144,7 +194,7 @@ instructions for Fedora.
 | `"auto"` | Detect and try fallback chain (default) |
 | `"homebrew"` | Homebrew only, skip if absent |
 | `"dnf"` | dnf/RPM only, `go install` fallback for tools without RPMs |
-| `"apt"` | Reserved for future use, behaves as `"auto"` |
+| `"apt"` | Reserved — maps to `"auto"` with info log |
 | `"manual"` | Skip all tools (existing behavior) |
 
 When `PackageManager` is explicitly set to `"dnf"`, the
@@ -158,21 +208,40 @@ not be attempted when the user has opted out.
 
 ## Risks / Trade-offs
 
-### R1: `go install` builds from source
+### R1: `go install` builds from source (provenance + supply chain)
 
 `go install` produces a binary built from source at
 `@latest`, which may differ from the tested release
-binary. Mitigation: this is tier 3 — it only activates
-when both Homebrew and dnf are unavailable. The binary
-is functionally equivalent; only the build provenance
-differs.
+binary. `@latest` resolves to the latest commit on the
+default branch, not the latest tagged release — this
+means the installed binary may include unreleased code.
+
+**Supply chain risk**: `@latest` is an unpinned,
+mutable reference. A compromised tag or malicious commit
+pushed to an upstream repo would be installed. This is
+the Go equivalent of using a mutable Docker tag.
+
+**Accepted risk with rationale**: This is tier 3 — it
+only activates when both Homebrew and dnf are unavailable,
+meaning the user has no pre-built binary option. The
+existing codebase already uses `@latest` for
+`golangci-lint` and `govulncheck` (setup.go:770, 811),
+establishing precedent. Go's module proxy and checksum
+database (`GONOSUMCHECK` is disabled by default) provide
+integrity verification — `go install` validates checksums
+against `sum.golang.org` before building.
+
+**Future improvement**: Consider pinning to a specific
+version tag (e.g., `@v0.12.0`) derived from `opts.Version`
+when available, falling back to `@latest` only when
+version is unknown.
 
 ### R2: GH CLI dnf repo not pre-configured
 
 `dnf install gh` will fail if the GitHub CLI repository
 is not configured. Mitigation: fall through to skip with
-a download link. The user can configure the repo
-manually and re-run `uf setup`.
+an actionable download link. The user can configure the
+repo manually and re-run `uf setup`.
 
 ### R3: `go install` requires Go toolchain
 
@@ -181,3 +250,33 @@ already a prerequisite for `unbound-force` development.
 If `go` is not available, the fallback gracefully
 continues to skip. The `LookPath("go")` check prevents
 confusing error messages.
+
+### R4: `dnf install -y` privilege and consent model
+
+`dnf install -y` requires root/sudo privileges and
+auto-confirms all prompts. The existing `installViaRpm()`
+already uses this pattern (setup.go:871).
+
+**Privilege model**: `uf setup` does not manage privilege
+escalation. If run as a normal user, `dnf install` fails
+with a permission error and the install function returns
+`action: "failed"` with the error. The user is expected
+to either run `uf setup` with appropriate privileges or
+use `sudo uf setup`. This matches the behavior of
+`brew install` (which also requires appropriate
+permissions for its prefix).
+
+**Consent model**: Running `uf setup` in auto mode
+implies consent to install tools — the command's entire
+purpose is automated tool installation. The `-y` flag
+prevents interactive prompts that would break automation.
+Users who want explicit control use
+`package_manager: manual` or per-tool `method: skip`
+overrides.
+
+**GPG key acceptance**: `-y` auto-accepts GPG keys for
+configured repositories. For `installViaRpm()` (GitHub
+Releases), no repository GPG key is involved — `dnf`
+installs the RPM directly by URL. For `dnf install gh`,
+the GitHub CLI repo's GPG key would be accepted, but
+only if the user has already configured the repo.
