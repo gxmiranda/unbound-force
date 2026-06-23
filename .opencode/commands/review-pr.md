@@ -144,61 +144,36 @@ Record the classification for each failing check. This feeds into Step 8 (AI rev
 
 ### 4. Run Local Deterministic Tools (Pre-flight)
 
-Run the project's own tools as a rapid pre-flight check.
+Load the `pre-flight` skill and run in `ci-aware` mode:
 
-**Detection**: Check which tools are available by looking
-for their configuration files:
+1. Invoke the `skill` tool with name `pre-flight` to
+   load the shared pre-flight check instructions.
 
-```bash
-test -f Makefile && echo "MAKEFILE=yes"
-test -f .golangci.yml && echo "GO_LINT=yes"
-test -f ruff.toml -o -f pyproject.toml && echo "PYTHON_LINT=yes"
-test -f .yamllint.yml && echo "YAML_LINT=yes"
-test -f .pre-commit-config.yaml && echo "PRECOMMIT=yes"
-```
+2. Execute the pre-flight skill's phases in order:
+   a. CI Workflow Parsing — discover commands from
+      `.github/workflows/`
+   b. Local Tool Detection — check for config files
+      and verify binary availability
+   c. CI Coverage Matrix — build the matrix using the
+      CI check results from Step 3. Apply ci-aware
+      decision rules:
+      - CI PASS → skip locally (CI already verified)
+      - CI FAIL → skip locally (failure already
+        captured in Step 3a)
+      - CI NONE → MUST run locally
+      - No CI checks at all → MUST run ALL detected
+        local tools
+   d. Execution — run only tools marked "Yes" in the
+      coverage matrix
 
-**CI coverage check** (mandatory before running any
-tool): Build and display a coverage matrix that maps
-each detected local tool to the CI check from Step 3
-that covers the same verification. Display this matrix
-to make the skip/run decision visible:
+3. **Record results**: Use the pre-flight result format
+   (CI Coverage Matrix, Execution Results, Verdict).
+   If tools pass, skip those categories in the AI
+   review entirely. If tools fail, include the failure
+   output as context for Step 8 (AI review).
 
-| Local tool | CI check that covers it | CI status | Run locally? |
-|------------|------------------------|-----------|--------------|
-| `go test` | e.g., "Local CI / test" | PASS/FAIL/NONE | Yes/No |
-| `golangci-lint` | e.g., "CI Checks / lint" | PASS/FAIL/NONE | Yes/No |
-| ... | ... | ... | ... |
-
-Decision rules:
-- CI status PASS → skip locally ("No" — CI already
-  verified)
-- CI status FAIL → skip locally ("No" — failure already
-  captured in Step 3a, will be analyzed in Step 8d)
-- CI status NONE (no matching check) → MUST run
-  locally ("Yes")
-- No CI checks reported at all → MUST run ALL detected
-  local tools ("Yes" for every row)
-
-**Execution**: Run only the tools marked "Yes" in the
-matrix above:
-
-| Tool detected | Command to run | What it checks |
-|---------------|----------------|----------------|
-| Makefile | `make lint` (or `make check`) | Project-defined lint/format/vet |
-| `.golangci.yml` | `golangci-lint run ./...` | Go lint rules |
-| `ruff.toml` / `pyproject.toml` | `ruff check .` | Python lint rules |
-| `.yamllint.yml` | `yamllint .` | YAML lint rules |
-| `.pre-commit-config.yaml` | `pre-commit run --all-files` | Pre-commit hooks |
-| `go.mod` | `go test ./...` | Go tests |
-| `pyproject.toml` / `setup.py` | `pytest` or `python -m pytest` | Python tests |
-
-**Record results**: Capture tool exit codes and output.
-If tools pass, skip those categories in the AI review
-entirely. If tools fail, include the failure output as
-context.
-
-**If no tools are detected**: Note this and proceed to
-AI-based review for all categories.
+4. **If no tools are detected**: Note this and proceed
+   to AI-based review for all categories.
 
 ### 5. Fetch Diff (Scoped)
 

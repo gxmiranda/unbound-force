@@ -30,11 +30,11 @@ func TestRunInit_FreshDir(t *testing.T) {
 	}
 
 	// Verify the summary includes a non-trivial file count
-	// 39 = 38 prior + 1 triage-issue command.
+	// 40 = 39 prior + 1 pre-flight skill.
 	// (devcontainer excluded — OS-specific, generated
 	// per-user by uf sandbox init).
-	if !strings.Contains(output, "39 files processed") {
-		t.Errorf("expected '39 files processed' in output, got:\n%s", output)
+	if !strings.Contains(output, "40 files processed") {
+		t.Errorf("expected '40 files processed' in output, got:\n%s", output)
 	}
 
 	// Verify a user-owned file was created

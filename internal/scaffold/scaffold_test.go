@@ -175,7 +175,8 @@ var expectedAssetPaths = []string{
 	"openspec/schemas/unbound-force/templates/spec.md",
 	"openspec/schemas/unbound-force/templates/design.md",
 	"openspec/schemas/unbound-force/templates/tasks.md",
-	// Swarm skills (1)
+	// Swarm skills (2)
+	"opencode/skills/pre-flight/SKILL.md",
 	"opencode/skills/speckit-workflow/SKILL.md",
 }
 
