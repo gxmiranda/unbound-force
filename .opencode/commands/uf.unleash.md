@@ -9,7 +9,7 @@ description: >
 ---
 <!-- scaffolded by uf vdev -->
 
-# Command: /unleash
+# Command: /uf.unleash
 
 ## Description
 
@@ -24,7 +24,7 @@ off on re-run.
 ## Usage
 
 ```
-/unleash
+/uf.unleash
 ```
 
 ## Instructions
@@ -53,8 +53,8 @@ git rev-parse --abbrev-ref HEAD
 ```
 
 - If on `main`: **STOP** with error:
-  > "Cannot run /unleash on main. Must be on a Speckit
-  > (`speckit/NNN-*`) or OpenSpec (`opsx/*`) feature branch."
+  > "Cannot run /uf.unleash on main. Must be on a Speckit
+  > (`NNN-*`) or OpenSpec (`opsx/*`) feature branch."
 
 - If on `opsx/*`: **OpenSpec mode detected.**
   Extract the change name from the branch:
@@ -69,8 +69,8 @@ git rev-parse --abbrev-ref HEAD
 
   Announce: "Detected OpenSpec change: `<name>`"
 
-- If the branch matches `speckit/NNN-*` or `NNN-*` (legacy)
-  (digits followed by a dash): **Speckit mode detected.**
+- If the branch matches `NNN-*` (digits followed by a
+  dash): **Speckit mode detected.**
 
   Validate that spec.md exists by running from the repo
   root:
@@ -88,11 +88,11 @@ git rev-parse --abbrev-ref HEAD
   is the working directory for all subsequent steps.
   Set `WORKFLOW_TIER = speckit`.
 
-- If the branch does not match `speckit/NNN-*`, `NNN-*`
-  (legacy), or `opsx/*`: **STOP** with error:
-  > "Unrecognized branch pattern. /unleash requires a
-  > Speckit feature branch (`speckit/NNN-*`) or OpenSpec
-  > branch (`opsx/*`). Run `/speckit.specify` or
+- If the branch does not match `NNN-*` or `opsx/*`:
+  **STOP** with error:
+  > "Unrecognized branch pattern. /uf.unleash requires a
+  > Speckit feature branch (`NNN-*`) or OpenSpec branch
+  > (`opsx/*`). Run `/speckit.specify` or
   > `/opsx-propose` to create one."
 
 ### 2. Resumability Detection
@@ -209,7 +209,7 @@ needed" and proceed to step 2.
   all unanswerable questions presented at once:
 
   ```
-  ## /unleash paused at: clarify
+  ## /uf.unleash paused at: clarify
 
   **Reason**: N question(s) require human input
 
@@ -221,10 +221,10 @@ needed" and proceed to step 2.
 
   ### What to do next
   Answer these questions in the spec, then re-run
-  `/unleash`.
+  `/uf.unleash`.
 
   ### Then resume
-  Run `/unleash` to continue from the plan step.
+  Run `/uf.unleash` to continue from the plan step.
   ```
 
 ### 4. Step 2 -- Plan
@@ -277,14 +277,14 @@ Divisor agents provide equivalent coverage (consistency
 analysis + quality validation) in a single pass.
 
 1. Read the full contents of
-   `.opencode/commands/review-council.md`.
+   `.opencode/commands/uf.review-council.md`.
 2. Delegate to the `cobalt-crush-dev` agent via the Task
    tool with the review council's instructions, adding
    the explicit mode override: "Run in **Spec Review
    Mode** -- review the spec artifacts in `FEATURE_DIR`,
    not code." The review council auto-detects the
    workflow tier from the branch name (`opsx/*` vs
-   `speckit/NNN-*` or `NNN-*`).
+   `NNN-*`).
 3. Collect the review results.
 
 **Processing results**:
@@ -306,7 +306,7 @@ analysis + quality validation) in a single pass.
   LOW/MEDIUM: **EXIT** with the findings:
 
   ```
-  ## /unleash paused at: spec review
+  ## /uf.unleash paused at: spec review
 
   **Reason**: HIGH/CRITICAL findings in spec artifacts
 
@@ -316,10 +316,10 @@ analysis + quality validation) in a single pass.
 
   ### What to do next
   Run `/speckit.clarify` to address the findings, then
-  re-run `/unleash`.
+  re-run `/uf.unleash`.
 
   ### Then resume
-  Run `/unleash` to continue from spec review.
+  Run `/uf.unleash` to continue from spec review.
   ```
 
 ### 7. Step 5 -- Implement
@@ -333,7 +333,7 @@ and use its CI Workflow Parsing phase to discover the
 exact CI commands from `.github/workflows/`. Also run
 its Local Tool Detection phase to discover additional
 tools from config files. This is the shared pre-flight
-logic used by `/review-council` and `/review-pr`.
+logic used by `/uf.review-council` and `/uf.review-pr`.
 
 **For each phase in tasks.md**:
 
@@ -382,7 +382,7 @@ logic used by `/review-council` and `/review-pr`.
       context:
 
       ```
-      ## /unleash paused at: implement (Phase N)
+      ## /uf.unleash paused at: implement (Phase N)
 
       **Reason**: Parallel worker failed
 
@@ -391,10 +391,10 @@ logic used by `/review-council` and `/review-pr`.
 
       ### What to do next
       Fix the issue described above, then re-run
-      `/unleash`.
+      `/uf.unleash`.
 
       ### Then resume
-      Run `/unleash` to continue from the failed phase.
+      Run `/uf.unleash` to continue from the failed phase.
       ```
 
    f. After all workers in a batch complete successfully,
@@ -413,7 +413,7 @@ logic used by `/review-council` and `/review-pr`.
         details:
 
         ```
-        ## /unleash paused at: implement (Phase N)
+        ## /uf.unleash paused at: implement (Phase N)
 
         **Reason**: Worktree merge conflict
 
@@ -422,10 +422,10 @@ logic used by `/review-council` and `/review-pr`.
 
         ### What to do next
         Resolve the merge conflicts manually, then
-        re-run `/unleash`.
+        re-run `/uf.unleash`.
 
         ### Then resume
-        Run `/unleash` to continue from the current
+        Run `/uf.unleash` to continue from the current
         phase.
         ```
 
@@ -455,7 +455,7 @@ logic used by `/review-council` and `/review-pr`.
    - If any fail: **EXIT** with the failure details:
 
      ```
-     ## /unleash paused at: implement (Phase N checkpoint)
+     ## /uf.unleash paused at: implement (Phase N checkpoint)
 
      **Reason**: Build or test failure after Phase N
 
@@ -463,10 +463,10 @@ logic used by `/review-council` and `/review-pr`.
      **Output**: [error output]
 
      ### What to do next
-     Fix the build/test failure, then re-run `/unleash`.
+     Fix the build/test failure, then re-run `/uf.unleash`.
 
      ### Then resume
-     Run `/unleash` to continue from the next phase.
+     Run `/uf.unleash` to continue from the next phase.
      ```
 
 ### 8. Step 6 -- Code Review
@@ -477,7 +477,7 @@ gate, Phase 1b Gaze quality analysis (if available), and
 Divisor agent reviews.
 
 1. Read the full contents of
-   `.opencode/commands/review-council.md`.
+   `.opencode/commands/uf.review-council.md`.
 2. Delegate to the `cobalt-crush-dev` agent via the Task
    tool with the review council's instructions, adding
    the explicit mode override: "Run in **Code Review
@@ -512,7 +512,7 @@ quality data.
   **EXIT** with the persistent issues:
 
   ```
-  ## /unleash paused at: code review
+  ## /uf.unleash paused at: code review
 
   **Reason**: 3 review iterations exhausted
 
@@ -528,10 +528,10 @@ quality data.
 
   ### What to do next
   Fix the outstanding findings manually, then re-run
-  `/unleash`.
+  `/uf.unleash`.
 
   ### Then resume
-  Run `/unleash` to continue from code review.
+  Run `/uf.unleash` to continue from code review.
   ```
 
 ### 9. Step 7 -- Retrospective
@@ -557,7 +557,7 @@ memory.
 3. **If Dewey is available** (`dewey_store_learning` tool
    exists): store each learning via `dewey_store_learning`
    with tags including:
-   - The branch name (e.g., `speckit/018-unleash-command`)
+   - The branch name (e.g., `018-unleash-command`)
    - The current date (e.g., `2026-03-29`)
    - The learning category (e.g., `pattern`, `gotcha`,
      `review-insight`, `file-specific`)
@@ -603,10 +603,10 @@ Present structured demo instructions to the developer.
    most recent build/test checkpoint.
 
 5. **Next Steps**: always present these options:
-   - `/finale` to commit, push, create PR, and return
+   - `/uf.finale` to commit, push, create PR, and return
      to main
    - `/speckit.clarify` to refine the spec and re-run
-     `/unleash`
+     `/uf.unleash`
 
 Format the output as:
 
@@ -630,15 +630,14 @@ Format the output as:
 
 ## Next Steps
 
-- Run `/finale` to create PR and watch CI
+- Run `/uf.finale` to create PR and watch CI
 - Run `/speckit.clarify` to refine and iterate
 ```
 
 ## Guardrails
 
 - **NEVER run on `main`** -- the command is for Speckit
-  (`speckit/NNN-*` or `NNN-*` legacy) and OpenSpec
-  (`opsx/*`) feature branches
+  (`NNN-*`) and OpenSpec (`opsx/*`) feature branches
 - **NEVER skip spec review exit on HIGH/CRITICAL** --
   these findings block implementation to prevent wasted
   effort on a flawed spec
@@ -654,7 +653,7 @@ Format the output as:
   it means the same mistakes will be repeated
 - **ALWAYS clean up worktrees** -- stale worktrees waste
   disk space and can cause confusion on re-runs
-- **NEVER create WorkflowInstance objects** -- `/unleash`
+- **NEVER create WorkflowInstance objects** -- `/uf.unleash`
   operates at the Speckit pipeline level, not the hero
   lifecycle workflow level (Specs 008/012/016)
 - **NEVER hardcode build/test commands** -- load the

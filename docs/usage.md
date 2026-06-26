@@ -31,8 +31,8 @@ by slash commands. You rarely need to call them directly.
 
 | Agent | Invoked by | Role |
 |-------|-----------|------|
-| `cobalt-crush-dev` | `/cobalt-crush` | Developer persona |
-| `divisor-*` (9 agents) | `/review-council` | Review council personas |
+| `cobalt-crush-dev` | `/uf.cobalt-crush` | Developer persona |
+| `divisor-*` (9 agents) | `/uf.review-council` | Review council personas |
 | `muti-mind-po` | `/muti-mind.*` | Product owner |
 | `mx-f-coach` | `@mx-f-coach` | Coaching and retrospectives |
 | `gaze-reporter` | `/gaze` | Quality analysis |
@@ -46,7 +46,7 @@ the agent name in your message.
 ### Review Code
 
 ```
-/review-council [N]
+/uf.review-council
 ```
 
 Runs 9 AI reviewer personas in parallel. Each focuses
@@ -54,17 +54,15 @@ on a different aspect (security, architecture, testing,
 operations, intent drift). You receive an **APPROVE** or
 **REQUEST CHANGES** verdict with specific findings. The
 council auto-detects whether to review code or specs
-based on what changed on your branch. When a PR number
-is provided (`[N]`), findings can optionally be posted
-as a GitHub review.
+based on what changed on your branch.
 
 ### Address Review Feedback
 
 After creating a PR and receiving reviewer feedback, use
-`/address-feedback` to systematically triage and respond:
+`/uf.address-feedback` to systematically triage and respond:
 
 ```text
-/address-feedback [PR_NUMBER]
+/uf.address-feedback [PR_NUMBER]
 ```
 
 The command runs four phases:
@@ -99,10 +97,10 @@ step. Then implement and finalize:
 
 ```
 /opsx-apply
-/finale
+/uf.finale
 ```
 
-`/finale` commits, pushes, creates a PR, watches CI, and
+`/uf.finale` commits, pushes, creates a PR, watches CI, and
 merges.
 
 ### Build a Feature (Large)
@@ -123,7 +121,7 @@ pipeline:
 /speckit.implement     execute the tasks
         |
         v
-/finale                commit, push, PR, merge
+/uf.finale                commit, push, PR, merge
 ```
 
 Optional intermediate steps: `/speckit.clarify` (refine
@@ -133,12 +131,12 @@ the spec), `/speckit.analyze` (consistency check),
 ### Go Fully Autonomous
 
 ```
-/unleash
+/uf.unleash
 ```
 
 Runs the full pipeline autonomously: clarify, plan,
 tasks, spec review, implement, code review, and
-retrospective. Works with both Speckit (`speckit/NNN-*` branches)
+retrospective. Works with both Speckit (`NNN-*` branches)
 and OpenSpec (`opsx/*` branches). Exits to human
 judgment only when it encounters ambiguity, review
 failures, or merge conflicts.
@@ -192,8 +190,8 @@ is detected, injecting credentials into the workspace.
 |-----------|----------|------------|
 | Bug fix or small task | OpenSpec | `/opsx-propose` |
 | New feature (3+ stories) | Speckit | `/speckit.specify` |
-| "Handle everything" | Either | `/unleash` |
-| Code review | Standalone | `/review-council` |
+| "Handle everything" | Either | `/uf.unleash` |
+| Code review | Standalone | `/uf.review-council` |
 | Quality check (Go) | Standalone | `/gaze` |
 
 ## Customization
@@ -218,21 +216,6 @@ Edit the `*-custom.md` files to add project-specific
 rules. Tool-owned files are auto-updated by `uf init`;
 custom files are never overwritten.
 
-## Dewey Knowledge Layer
-
-During `uf init`, Dewey performs a **metadata-only index**
-(`--no-embeddings`) for fast initialization. Semantic
-search embeddings are not generated automatically.
-
-To enable semantic search after scaffolding:
-
-```bash
-dewey index
-```
-
-To skip Dewey entirely during init, set
-`setup.tools.dewey.method: skip` in `.uf/config.yaml`.
-
 ## CLI Commands
 
 Unbound Force also provides terminal CLI commands
@@ -256,13 +239,13 @@ for details.
 
 | Command | Description |
 |---------|-------------|
-| `/review-council [N]` | Run the 9-persona review council; optionally post to PR |
-| `/review-pr` | Review a GitHub PR (post-PR) |
-| `/address-feedback` | Triage and address PR review feedback |
+| `/uf.review-council` | Run the 9-persona review council |
+| `/uf.review-pr` | Review a GitHub PR (post-PR) |
+| `/uf.address-feedback` | Triage and address PR review feedback |
 | `/opsx-propose` | Create a change proposal with plan and tasks |
 | `/opsx-apply` | Implement tasks from an OpenSpec change |
 | `/opsx-explore` | Think through ideas (read-only) |
-| `/unleash` | Run the full pipeline autonomously |
+| `/uf.unleash` | Run the full pipeline autonomously |
 | `/speckit.specify` | Create a feature specification |
 | `/speckit.plan` | Generate implementation plan from spec |
 | `/speckit.tasks` | Break plan into ordered task list |
@@ -272,18 +255,18 @@ for details.
 | `/speckit.checklist` | Generate quality checklist |
 | `/speckit.taskstoissues` | Convert tasks to GitHub issues |
 | `/speckit.testreview` | Review test quality for spec |
-| `/cobalt-crush` | Invoke developer persona directly |
+| `/uf.cobalt-crush` | Invoke developer persona directly |
 | `/gaze` | Run quality analysis (Go projects) |
 | `/gaze-fix` | Generate tests for weak spots |
-| `/finale` | Commit, push, create PR, merge |
-| `/agent-brief` | Create or audit AGENTS.md |
+| `/uf.finale` | Commit, push, create PR, merge |
+| `/uf.agent-brief` | Create or audit AGENTS.md |
 | `/org` | Manage work items (cells) |
 | `/handoff` | End session with clean handoff |
 | `/inbox` | Check agent communication inbox |
 | `/forge` | Decompose tasks for parallel execution |
 | `/forge-status` | Check parallel execution status |
-| `/uf-init` | Run uf init from within OpenCode |
-| `/constitution-check` | Check constitution alignment |
+| `/uf.init` | Run uf init from within OpenCode |
+| `/uf.constitution-check` | Check constitution alignment |
 | `/workflow-start` | Begin hero lifecycle workflow |
 | `/workflow-status` | Check workflow state |
 | `/workflow-advance` | Advance workflow to next stage |

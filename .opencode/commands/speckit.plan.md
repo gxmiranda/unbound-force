@@ -25,7 +25,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 Your job is done. Report the results and prompt the
 user. The user will invoke a separate command
-(/unleash, /cobalt-crush, or /opsx-apply) when they
+(/uf.unleash, /uf.cobalt-crush, or /opsx-apply) when they
 are ready to implement.
 
 1. **Setup**: Run `.specify/scripts/bash/setup-plan.sh --json` from repo root and parse JSON for FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, BRANCH. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
@@ -42,6 +42,7 @@ are ready to implement.
    - Re-evaluate Constitution Check post-design
 
 4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+
 
 ## Phases
 
@@ -116,7 +117,7 @@ are ready to implement.
 
 - **NEVER modify source code** — this command updates
   spec artifacts ONLY. Implementation changes belong in
-  `/speckit.implement`, `/unleash`, or `/cobalt-crush`.
+  `/speckit.implement`, `/uf.unleash`, or `/uf.cobalt-crush`.
   The user needs to review the plan before
   implementation begins. Implementing without review
   defeats the purpose of the spec-first workflow.
