@@ -4086,9 +4086,9 @@
       "function": "isDivisorAsset",
       "file": "internal/scaffold/scaffold.go",
       "line": 332,
-      "complexity": 4,
+      "complexity": 5,
       "line_coverage": 100,
-      "crap": 4
+      "crap": 5
     },
     {
       "package": "scaffold",
