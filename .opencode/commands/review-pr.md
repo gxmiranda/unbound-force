@@ -843,6 +843,17 @@ APPROVE may not satisfy branch protection if this
 account is not listed in CODEOWNERS.
 ```
 
+**Session-resume guard**: If this session has been
+   resumed from compressed context, or if you cannot
+   verify that the human explicitly confirmed the review
+   in the current uncompressed conversation history, you
+   MUST re-present the review content (verdict + all
+   comments) and obtain fresh confirmation via the
+   **AskUserQuestion tool** before posting. Do NOT rely
+   on confirmation recorded in compressed context. When
+   in doubt, re-confirm — false re-confirmation is
+   harmless; posting without consent is a violation.
+
 1. **Prepare comments**: For each finding that maps to a
    specific file and line range in the diff, prepare an
    in-line comment with:
@@ -875,6 +886,8 @@ account is not listed in CODEOWNERS.
    Cap at 15 comments maximum. If more than 15 findings
    qualify, prioritize CRITICAL over HIGH. Include
    remaining findings in the review body summary.
+
+>>> MANDATORY GATE: HUMAN CONFIRMATION REQUIRED <<<
 
 2. **Show all comments for human review**: Present each
    prepared comment with its full before/after context:
@@ -954,3 +967,5 @@ account is not listed in CODEOWNERS.
    the user MUST select the "Approve -- post review"
    option — a clearly-labeled action that conveys the
    merge-unblocking consequence.
+
+>>> END MANDATORY GATE <<<
