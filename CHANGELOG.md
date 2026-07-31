@@ -20,6 +20,12 @@ Each entry follows the format: `- <change-name>: <summary>`.
   Closes: #253)
 
 ### Changed
+- `/triage-issue` label gates: all label mutations (create
+  and apply) now require explicit user confirmation via
+  AskUserQuestion, not just the `duplicate` label. Duplicate
+  label retains supplementary close-semantics confirmation.
+  (Spec: openspec/changes/review-council-label-gates/,
+  Fixes: #352)
 - `/review-council` Code Review Mode: added optional
   Step 7 (GitHub Review Posting) for posting consolidated
   multi-persona council findings as a GitHub PR review;
