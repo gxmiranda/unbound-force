@@ -61,7 +61,7 @@ echo '[]' > pr-linked-issues.json
 if [[ -n "${ISSUE_NUMS}" ]]; then
   ISSUES_JSON="[]"
   for num in ${ISSUE_NUMS}; do
-    ISSUE=$(gh issue view "${num}" --repo "${REPO}" \
+    ISSUE=$(timeout 10 gh issue view "${num}" --repo "${REPO}" \
       --json number,title,body,labels 2>/dev/null) || continue
     ISSUE=$(echo "${ISSUE}" | jq '{
       number,

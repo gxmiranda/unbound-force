@@ -26,7 +26,7 @@ Read these methodology files and apply them to the PR diff:
 
 CI constraints — this is a non-interactive CI run:
 - Do NOT run shell commands, git, gh CLI, or local tools
-- Do NOT spawn subagents or iterate fix loops
+- Do NOT iterate fix loops or attempt to fix code
 - Do NOT execute any "Execution Steps" from the commands
   — use them only as methodology and criteria reference
 - Read the diff from pr-diff-annotated.patch (line-annotated)
