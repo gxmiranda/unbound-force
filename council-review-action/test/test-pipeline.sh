@@ -743,7 +743,9 @@ jq -n '{title: "feat: fix $(whoami) \"injection\" {test} `cmd`"}' \
   bash "${SCRIPT_DIR}/build-prompt.sh")
 
 PROMPT=$(cat "${WORK_DIR}/prompt-special/review_prompt.txt")
+# shellcheck disable=SC2016  # Intentional: testing literal string preservation
 assert_contains "dollar-paren literal" '$(whoami)' "${PROMPT}"
+# shellcheck disable=SC2016
 assert_contains "backtick literal" '`cmd`' "${PROMPT}"
 
 # ── Summary ──────────────────────────────────────────────────

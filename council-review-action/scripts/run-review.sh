@@ -42,6 +42,7 @@ MODEL_NAME="${MODEL#*/}"
 # doom_loop) are explicitly denied so no TTY prompt is needed.
 # This avoids --dangerously-skip-permissions / --auto which
 # would blanket-approve everything not denied.
+# shellcheck disable=SC2016  # JSON string, no shell expansion intended
 PERMISSION_CONFIG='{
   "$schema": "https://opencode.ai/config.json",
   "permission": {
