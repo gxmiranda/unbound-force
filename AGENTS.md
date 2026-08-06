@@ -72,7 +72,7 @@ unbound-force/
 ├── council-review-action/             # AI code review composite GitHub Action
 │   ├── action.yml                    # Composite action definition
 │   ├── scripts/                      # Pipeline scripts (diff, prompt, review, parse)
-│   ├── test/                         # Pipeline tests (73 assertions)
+│   ├── test/                         # Pipeline tests (91 assertions)
 │   └── docs/                         # Architecture, decisions, security, testing
 ├── cmd/unbound-force/                # Cobra CLI entry point
 ├── cmd/mutimind/                     # Muti-Mind backend CLI

@@ -68,7 +68,7 @@ GCP Workload Identity Federation (WIF)
     ▼  Short-lived credentials
 Vertex AI (Claude on Google Cloud)
     │
-    ▼  opencode run --model google-vertex-anthropic/claude-sonnet-4-6
+    ▼  opencode run --pure --model google-vertex-anthropic/claude-sonnet-4-6
 Review JSON output
 ```
 
@@ -104,7 +104,11 @@ prevent tool misuse:
 `GH_TOKEN` is unset before `opencode run` to remove GitHub
 API access. `GOOGLE_APPLICATION_CREDENTIALS` cannot be unset
 (breaks Vertex AI auth) but bash is denied at the runtime
-level, so the model has no tool path to read it.
+level and `external_directory: deny` confines file reads to
+the project workspace. On GitHub-hosted runners the WIF
+credential file resides in `RUNNER_TEMP` outside the
+workspace. See [security-risks.md](security-risks.md) A3
+for the full threat model.
 
 The review runs with a 300-second timeout. OpenCode CLI is
 pinned to `opencode-ai@1.15.13` (JSONL format compatibility

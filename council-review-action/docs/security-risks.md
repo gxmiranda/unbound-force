@@ -114,9 +114,12 @@ output — comment fallback" in ~3s).
 | Move credential file outside workspace | Marginal — SDK reads file on behalf of process | Fragile, doesn't change threat model | Not pursued |
 
 **Mitigations in place**:
-- `OPENCODE_CONFIG_CONTENT` permission config blocks all tool paths
-  to process environment (`env`, `printenv`, arbitrary bash) at the
-  OpenCode runtime level (bash: deny)
+- `OPENCODE_CONFIG_CONTENT` permission config blocks shell-based
+  access to process environment (`env`, `printenv`, arbitrary bash)
+  at the OpenCode runtime level (bash: deny). The `read` tool
+  remains allowed but `external_directory: deny` confines it to
+  the project workspace; on GitHub-hosted runners the WIF
+  credential file resides in `RUNNER_TEMP` outside the workspace
 - `--pure` prevents external MCP plugins from bypassing permission
   restrictions
 - `GH_TOKEN` is unset so GitHub API access is removed

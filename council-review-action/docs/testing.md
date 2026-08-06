@@ -17,16 +17,19 @@ bash test/test-pipeline.sh
 | `extract-review-json.py` | Yes | 8 | 8 |
 | `build-prompt.sh` | Yes | 5 | 15 |
 | `parse-output.sh` | Yes | 6 | 9 |
-| `run-review.sh` | No (requires OpenCode + Vertex AI) | — | — |
+| `run-review.sh` | Yes (config generation via stub) | 3 | 17 |
+| `divisor-*.md` | Yes (frontmatter syntax) | 1 | 1 |
 | `prefetch.sh` | No (requires `gh` CLI + repo access) | — | — |
 
-**Total: 31 scenarios, 73 assertions** (includes empty diff,
+**Total: 35 scenarios, 91 assertions** (includes empty diff,
 size limit, multiple JSON objects, 6 parse-output scenarios
 covering direct JSON, JSONL streaming, plain text, filter
 failure, and all-comments-filtered paths, JSON schema field
 checks, parse attempt limit, multi-category noise filtering,
-empty inline_comments, rename diff headers, and special
-character PR title handling)
+empty inline_comments, rename diff headers, special character
+PR title handling, sandbox config generation for Vertex and
+non-Vertex providers, MODEL metacharacter rejection, and
+agent frontmatter permission syntax)
 
 ### Test details
 
@@ -67,8 +70,22 @@ character PR title handling)
 |---|---|---|
 | 13 | PR title injection | Title appears in prompt, output format section present |
 | 14 | Title truncation | Titles >200 chars are truncated |
-| 15 | Security instructions | Untrusted input warning, no-shell/no-subagent constraints |
+| 15 | Security instructions | Untrusted input warning, no-shell/no-fix-loop constraints |
 | 31 | Special characters | Shell metacharacters and backticks in PR title preserved literally |
+
+#### run-review.sh (sandbox config)
+
+| # | Scenario | What it validates |
+|---|---|---|
+| 32 | Vertex provider config | Permission denials (7 keys), task NOT denied, provider key present, --pure flag, no skip flags |
+| 33 | Non-Vertex provider config | Permission denials present, no provider key |
+| 34 | MODEL metachar rejection | Exit 1 for MODEL containing shell metacharacters |
+
+#### divisor-*.md (agent frontmatter)
+
+| # | Scenario | What it validates |
+|---|---|---|
+| 35 | Permission syntax | All divisor agents use `permission:` not `tools:` |
 
 ## Integration tests (live CI)
 

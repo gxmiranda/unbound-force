@@ -54,7 +54,7 @@
 
 **Decision**: Treat all diff content, PR titles, and file content as untrusted input. The prompt explicitly instructs the model to ignore override attempts.
 
-**Scope**: This is a defense-in-depth measure. The primary defense is that the model runs in a sandboxed CI environment with no shell access, no network access beyond Vertex AI, and no write permissions beyond the review JSON output.
+**Scope**: This is a defense-in-depth measure. The primary defense is that the model runs in a sandboxed CI environment with no shell access, no network access beyond Vertex AI, and no file modification permissions beyond the review JSON output (OpenCode's `edit` permission covers `edit`, `write`, and `patch` tools).
 
 ## Runtime sandbox (defense-in-depth)
 

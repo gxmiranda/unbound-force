@@ -79,7 +79,7 @@ council-review-action/
 │   ├── extract-review-json.py  # JSON extraction from JSONL
 │   └── filter-diff-lines.py    # Line number validation
 ├── test/
-│   └── test-pipeline.sh    # Pipeline tests (73 assertions)
+│   └── test-pipeline.sh    # Pipeline tests (91 assertions)
 └── docs/
     ├── quickstart.md        # Quick start guide
     ├── architecture.md      # End-to-end flow, workflow chain
@@ -94,7 +94,8 @@ council-review-action/
 bash council-review-action/test/test-pipeline.sh
 ```
 
-31 scenarios with 73 assertions covering diff processing, JSON
-extraction, prompt construction, and output parsing. See
+35 scenarios with 91 assertions covering diff processing, JSON
+extraction, prompt construction, output parsing, sandbox config
+generation, and agent frontmatter validation. See
 [docs/testing.md](docs/testing.md) for the coverage matrix and
 live integration testing instructions.

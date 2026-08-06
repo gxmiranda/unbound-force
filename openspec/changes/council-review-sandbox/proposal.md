@@ -41,8 +41,9 @@ Tracked as complytime/nunya#406 (defense-in-depth proposal).
 ### New Capabilities
 
 - `runtime-permission-config`: Hard tool boundary via
-  `OPENCODE_CONFIG_CONTENT` env var that denies write/execute/
-  network tools regardless of prompt instructions or agent config
+  `OPENCODE_CONFIG_CONTENT` env var that denies edit (covers
+  write/edit/patch), bash, webfetch, websearch, and skill
+  regardless of prompt instructions or agent config
 - `plugin-isolation`: `--pure` flag prevents external MCP plugins
   from loading, closing the plugin bypass vector
 

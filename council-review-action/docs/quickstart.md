@@ -74,7 +74,7 @@ that calls the council-review-action:
 ```yaml
 - name: Run council review
   id: review
-  uses: unbound-force/unbound-force/council-review-action@main
+  uses: unbound-force/unbound-force/council-review-action@dc82f77d590a0fa68dd6e2344f6a9569087dedf5  # main
   with:
     diff-path: pr-diff.patch
     meta-path: pr-meta.json
@@ -114,7 +114,10 @@ with:
 
 ### Agent pattern
 
-Override which agents are discovered:
+Override which agents are discovered for multi/single mode
+detection. Note: the review prompt still references
+`divisor-*.md` in its methodology instructions, so custom
+patterns only affect whether multi-agent mode is activated:
 
 ```yaml
 with:

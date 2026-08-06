@@ -130,6 +130,9 @@ the permission config mechanism used in `run-review.sh`.
 
 The migration preserves semantics:
 - `tools: { bash: false }` becomes `permission: { bash: deny }`
+- `tools: { write: false }` is covered by `permission: { edit: deny }`
+  (OpenCode's `edit` permission governs `edit`, `write`, and `patch`
+  tools — see https://opencode.ai/docs/permissions/)
 - `tools: { read: true }` is dropped (read defaults to allow)
 - Review agents: deny edit, bash, webfetch
 - Content agents (curator, envoy, herald, scribe): deny only

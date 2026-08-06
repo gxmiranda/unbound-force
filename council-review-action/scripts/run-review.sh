@@ -19,12 +19,13 @@ fi
 PROVIDER="${MODEL%%/*}"
 MODEL_NAME="${MODEL#*/}"
 
-# Defense-in-depth sandbox (layers 2+4, see nunya#406).
+# Defense-in-depth sandbox (runtime permissions + plugin isolation).
 # Permission denials are enforced by OpenCode's permission
 # system at runtime, not by prompt instructions.
 #
 # Denied tools:
-#   edit               — no file writes, edits, or patches
+#   edit               — no file modifications (covers edit, write,
+#                        and patch tools per OpenCode docs)
 #   bash               — no shell command execution
 #   webfetch           — no URL fetching
 #   websearch          — no web search
@@ -93,6 +94,8 @@ timeout 300 opencode run \
   -- "Review this PR according to the attached prompt." \
   > review_raw.txt 2>review_err.txt || OPENCODE_EXIT=$?
 
+# Exit code 124 is coreutils timeout's sentinel: it means the
+# child process was killed after the time limit expired.
 if [[ "${OPENCODE_EXIT}" -eq 124 ]]; then
   echo "::warning::OpenCode timed out after 300s"
   cat review_err.txt >&2

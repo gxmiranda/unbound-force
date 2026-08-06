@@ -41,7 +41,7 @@ assert_eq() {
 
 assert_contains() {
   local label="$1" needle="$2" haystack="$3"
-  if echo "${haystack}" | grep -qF "${needle}"; then
+  if echo "${haystack}" | grep -qF -- "${needle}"; then
     echo "  PASS: ${label}"
     PASS=$((PASS + 1))
   else
@@ -52,7 +52,7 @@ assert_contains() {
 
 assert_not_contains() {
   local label="$1" needle="$2" haystack="$3"
-  if ! echo "${haystack}" | grep -qF "${needle}"; then
+  if ! echo "${haystack}" | grep -qF -- "${needle}"; then
     echo "  PASS: ${label}"
     PASS=$((PASS + 1))
   else
@@ -747,6 +747,133 @@ PROMPT=$(cat "${WORK_DIR}/prompt-special/review_prompt.txt")
 assert_contains "dollar-paren literal" '$(whoami)' "${PROMPT}"
 # shellcheck disable=SC2016
 assert_contains "backtick literal" '`cmd`' "${PROMPT}"
+
+# ── Test 32: run-review.sh — Vertex provider sandbox config ──
+echo "Test 32: run-review.sh — Vertex provider produces permission + provider config"
+
+RUN_DIR=$(mktemp -d)
+trap 'rm -rf "${WORK_DIR}" "${RUN_DIR}"' EXIT
+
+# Stub opencode: capture argv and env, produce minimal output
+mkdir -p "${RUN_DIR}/bin"
+cat > "${RUN_DIR}/bin/opencode" << 'STUB'
+#!/usr/bin/env bash
+echo "$@" > "${STUB_CAPTURE_DIR}/argv.txt"
+echo "${OPENCODE_CONFIG_CONTENT}" > "${STUB_CAPTURE_DIR}/config.txt"
+echo '{"summary": "Stub review.", "inline_comments": []}' > review_raw.txt
+STUB
+chmod +x "${RUN_DIR}/bin/opencode"
+
+# Stub timeout: pass through to the command (skip the timeout arg)
+cat > "${RUN_DIR}/bin/timeout" << 'STUB'
+#!/usr/bin/env bash
+shift  # drop timeout value
+exec "$@"
+STUB
+chmod +x "${RUN_DIR}/bin/timeout"
+
+mkdir -p "${RUN_DIR}/capture"
+export STUB_CAPTURE_DIR="${RUN_DIR}/capture"
+
+(
+  cd "${RUN_DIR}"
+  export PATH="${RUN_DIR}/bin:${PATH}"
+  export MODEL="google-vertex-anthropic/claude-sonnet-4-6"
+  touch review_prompt.txt
+  bash "${SCRIPT_DIR}/run-review.sh"
+)
+
+CONFIG=$(cat "${RUN_DIR}/capture/config.txt")
+ARGV=$(cat "${RUN_DIR}/capture/argv.txt")
+
+# Verify permission denials
+assert_contains "edit denied" '"edit": "deny"' "${CONFIG}"
+assert_contains "bash denied" '"bash": "deny"' "${CONFIG}"
+assert_contains "webfetch denied" '"webfetch": "deny"' "${CONFIG}"
+assert_contains "websearch denied" '"websearch": "deny"' "${CONFIG}"
+assert_contains "skill denied" '"skill": "deny"' "${CONFIG}"
+assert_contains "external_directory denied" '"external_directory": "deny"' "${CONFIG}"
+assert_contains "doom_loop denied" '"doom_loop": "deny"' "${CONFIG}"
+
+# Verify task is NOT denied (required for multi-agent)
+assert_not_contains "task not denied" '"task"' "${CONFIG}"
+
+# Verify provider config present for Vertex
+assert_contains "provider key present" '"provider"' "${CONFIG}"
+assert_contains "vertex provider" '"google-vertex-anthropic"' "${CONFIG}"
+
+# Verify --pure flag
+assert_contains "pure flag" "--pure" "${ARGV}"
+
+# Verify no skip flags
+assert_not_contains "no skip-permissions" "--dangerously-skip-permissions" "${ARGV}"
+assert_not_contains "no auto flag" "--auto" "${ARGV}"
+
+# ── Test 33: run-review.sh — non-Vertex provider sandbox config ─
+echo "Test 33: run-review.sh — non-Vertex provider produces permission-only config"
+
+rm -f "${RUN_DIR}/capture/config.txt" "${RUN_DIR}/capture/argv.txt"
+rm -f "${RUN_DIR}/review_raw.txt" "${RUN_DIR}/review_err.txt"
+
+(
+  cd "${RUN_DIR}"
+  export PATH="${RUN_DIR}/bin:${PATH}"
+  export MODEL="anthropic/claude-sonnet-4-6"
+  touch review_prompt.txt
+  bash "${SCRIPT_DIR}/run-review.sh"
+)
+
+CONFIG=$(cat "${RUN_DIR}/capture/config.txt")
+
+# Permission denials still present
+assert_contains "non-vertex: edit denied" '"edit": "deny"' "${CONFIG}"
+assert_contains "non-vertex: bash denied" '"bash": "deny"' "${CONFIG}"
+
+# No provider key for non-Vertex
+assert_not_contains "no provider key" '"provider"' "${CONFIG}"
+
+# ── Test 34: run-review.sh — MODEL metachar rejection ────────
+echo "Test 34: run-review.sh — rejects MODEL with shell metacharacters"
+
+if (
+  cd "${RUN_DIR}"
+  export PATH="${RUN_DIR}/bin:${PATH}"
+  export MODEL='a;rm -rf /'
+  touch review_prompt.txt
+  bash "${SCRIPT_DIR}/run-review.sh" 2>/dev/null
+); then
+  echo "  FAIL: should reject model with metacharacters"
+  FAIL=$((FAIL + 1))
+else
+  echo "  PASS: rejects model with metacharacters"
+  PASS=$((PASS + 1))
+fi
+
+# ── Test 35: divisor agent frontmatter — permission syntax ───
+echo "Test 35: divisor agent frontmatter — uses permission: not tools:"
+
+AGENTS_DIR="${SCRIPT_DIR}/../../.opencode/agents"
+AGENT_FAIL=0
+for agent in "${AGENTS_DIR}"/divisor-*.md; do
+  BASENAME=$(basename "${agent}")
+  if grep -q '^tools:' "${agent}"; then
+    echo "  FAIL: ${BASENAME} still uses tools: frontmatter"
+    AGENT_FAIL=1
+  fi
+  if ! grep -q '^permission:' "${agent}" && \
+     ! grep -q '  permission:' "${agent}"; then
+    echo "  FAIL: ${BASENAME} missing permission: frontmatter"
+    AGENT_FAIL=1
+  fi
+done
+if [[ "${AGENT_FAIL}" -eq 0 ]]; then
+  echo "  PASS: all divisor agents use permission: syntax"
+  PASS=$((PASS + 1))
+else
+  FAIL=$((FAIL + 1))
+fi
+
+rm -rf "${RUN_DIR}"
 
 # ── Summary ──────────────────────────────────────────────────
 echo ""
