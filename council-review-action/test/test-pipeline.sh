@@ -775,6 +775,7 @@ chmod +x "${RUN_DIR}/bin/timeout"
 mkdir -p "${RUN_DIR}/capture"
 export STUB_CAPTURE_DIR="${RUN_DIR}/capture"
 
+# shellcheck disable=SC2030  # Intentional: PATH/MODEL modified in subshell for test isolation
 (
   cd "${RUN_DIR}"
   export PATH="${RUN_DIR}/bin:${PATH}"
@@ -783,6 +784,7 @@ export STUB_CAPTURE_DIR="${RUN_DIR}/capture"
   bash "${SCRIPT_DIR}/run-review.sh"
 )
 
+# shellcheck disable=SC2031  # Intentional: reading outer-scope values after subshell
 CONFIG=$(cat "${RUN_DIR}/capture/config.txt")
 ARGV=$(cat "${RUN_DIR}/capture/argv.txt")
 
@@ -815,6 +817,7 @@ echo "Test 33: run-review.sh — non-Vertex provider produces permission-only co
 rm -f "${RUN_DIR}/capture/config.txt" "${RUN_DIR}/capture/argv.txt"
 rm -f "${RUN_DIR}/review_raw.txt" "${RUN_DIR}/review_err.txt"
 
+# shellcheck disable=SC2030,SC2031  # Intentional: PATH/MODEL modified in subshell for test isolation
 (
   cd "${RUN_DIR}"
   export PATH="${RUN_DIR}/bin:${PATH}"
@@ -823,6 +826,7 @@ rm -f "${RUN_DIR}/review_raw.txt" "${RUN_DIR}/review_err.txt"
   bash "${SCRIPT_DIR}/run-review.sh"
 )
 
+# shellcheck disable=SC2031  # Intentional: reading outer-scope values after subshell
 CONFIG=$(cat "${RUN_DIR}/capture/config.txt")
 
 # Permission denials still present
@@ -835,6 +839,7 @@ assert_not_contains "no provider key" '"provider"' "${CONFIG}"
 # ── Test 34: run-review.sh — MODEL metachar rejection ────────
 echo "Test 34: run-review.sh — rejects MODEL with shell metacharacters"
 
+# shellcheck disable=SC2030,SC2031  # Intentional: PATH/MODEL modified in subshell for test isolation
 if (
   cd "${RUN_DIR}"
   export PATH="${RUN_DIR}/bin:${PATH}"
