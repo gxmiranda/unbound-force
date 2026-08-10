@@ -58,7 +58,12 @@ PERMISSION_CONFIG='{
 }'
 
 if [[ "${PROVIDER}" == "google-vertex-anthropic" ]]; then
-  # Merge Vertex provider config with permission config
+  # Merge Vertex provider config with permission config.
+  # jq '+' uses right-side-wins for duplicate keys. Currently safe:
+  # left ($perms) contributes "$schema" and "permission", right
+  # contributes "provider" — no overlap. Do NOT add "permission" or
+  # "$schema" to the right-side block; it would silently overwrite
+  # the deny config.
   export OPENCODE_CONFIG_CONTENT
   OPENCODE_CONFIG_CONTENT=$(jq -n \
     --arg model "${MODEL_NAME}" \

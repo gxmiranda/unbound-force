@@ -62,7 +62,7 @@
 
 1. **`OPENCODE_CONFIG_CONTENT` permission config** (hard boundary) — `run-review.sh` injects a runtime config via the `OPENCODE_CONFIG_CONTENT` env var that denies `edit`, `bash`, `webfetch`, `websearch`, and `skill`. Read, glob, and grep remain allowed (OpenCode defaults). This is enforced by the OpenCode permission system at runtime, not by prompt instruction. The permission config merges with the Vertex AI provider config already injected the same way.
 2. **`--pure`** (plugin isolation) — External MCP plugins are not loaded, closing the plugin bypass vector where an external plugin could grant capabilities beyond the permission config.
-3. **Agent frontmatter** (`permission:` in `divisor-*.md`) — Review-focused Divisor agents declare `edit: deny`, `bash: deny`, `webfetch: deny` in their frontmatter. This is defense-in-depth; even if the runtime config were misconfigured, the agent-level restrictions apply.
+3. **Agent frontmatter** (`permission:` in `divisor-*.md`) — Review-focused Divisor agents declare `edit: deny`, `bash: deny`, `webfetch: deny` in their frontmatter. This is defense-in-depth; even if the runtime config were misconfigured, the agent-level restrictions apply. The frontmatter intentionally omits `websearch` and `skill` (denied only at Layer 1) — agent-level restrictions focus on the three highest-risk tools that could modify files, execute commands, or exfiltrate data.
 
 **Why `OPENCODE_CONFIG_CONTENT`**: OpenCode has no `--permissions` CLI flag. Permissions are configured via `opencode.json` or env var. `OPENCODE_CONFIG_CONTENT` is documented as "runtime overrides" at precedence level 6 (above project config) and merges with (not replaces) the project config.
 
