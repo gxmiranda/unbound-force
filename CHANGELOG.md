@@ -75,6 +75,19 @@ Each entry follows the format: `- <change-name>: <summary>`.
   (Spec: openspec/changes/mutimind-acceptance-gate/,
   Fixes: #351)
 
+### Removed
+- remove-bridge-file-scaffolding: Removed CLAUDE.md and
+  .cursorrules bridge file scaffolding from `uf init` and
+  bridge file checks from `uf doctor`. OpenCode is the only
+  officially supported platform; bridge files for Claude Code
+  and Cursor were experimental and are no longer maintained.
+  Existing bridge files in user repos are not deleted.
+  Updated `/uf.agent-brief` command to remove bridge file
+  verification step and references. Cleaned up QUICKSTART.md
+  and architecture docs.
+  (Spec: openspec/changes/remove-bridge-file-scaffolding/,
+  Fixes: #459)
+
 ### Changed
 - All 10 uf-owned slash commands renamed to `uf.`
   dot-notation namespace prefix: `/address-feedback`
