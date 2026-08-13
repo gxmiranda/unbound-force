@@ -276,7 +276,7 @@ func warnLegacyReviewerFiles(w io.Writer, targetDir string) {
 // knownAssetPrefixes enumerates the valid top-level prefixes
 // in the embedded assets directory. Used by mapAssetPath to
 // detect assets added under unexpected directories.
-var knownAssetPrefixes = []string{"opencode/", "openspec/", "devcontainer/"}
+var knownAssetPrefixes = []string{"opencode/", "openspec/", "devcontainer/", "specify/"}
 
 // mapAssetPath converts an embedded asset relative path to the
 // output path in the target directory. The assets/ directory
@@ -284,6 +284,7 @@ var knownAssetPrefixes = []string{"opencode/", "openspec/", "devcontainer/"}
 //
 //	opencode/ -> .opencode/
 //	openspec/ -> openspec/  (no dot prefix)
+//	specify/  -> .specify/
 func mapAssetPath(relPath string) string {
 	switch {
 	case strings.HasPrefix(relPath, "opencode/"):
@@ -295,6 +296,10 @@ func mapAssetPath(relPath string) string {
 		// devcontainer/ assets map to .devcontainer/ in the
 		// target directory. Deployed by both uf init and
 		// uf sandbox init (D7).
+		return "." + relPath
+	case strings.HasPrefix(relPath, "specify/"):
+		// specify/ assets map to .specify/ in the target
+		// directory (e.g., starter constitution).
 		return "." + relPath
 	default:
 		// Unknown prefix — pass through unchanged but this
@@ -1733,10 +1738,10 @@ func printNextSteps(w io.Writer, divisorOnly, langExplicit, langDetected bool, s
 	}
 	if !hasDewey && len(subResults) == 0 {
 		_, _ = fmt.Fprintln(w, "  1. Run uf setup to install the full toolchain")
-		_, _ = fmt.Fprintln(w, "  2. Run /speckit.constitution to create your project constitution")
+		_, _ = fmt.Fprintln(w, "  2. Run /speckit.constitution to customize your project constitution")
 		_, _ = fmt.Fprintln(w, "  3. Run uf doctor to verify your environment")
 	} else {
-		_, _ = fmt.Fprintln(w, "  1. Run /speckit.constitution to create your project constitution")
+		_, _ = fmt.Fprintln(w, "  1. Run /speckit.constitution to customize your project constitution")
 		_, _ = fmt.Fprintln(w, "  2. Run uf doctor to verify your environment")
 		_, _ = fmt.Fprintln(w, "  3. Run /speckit.specify to start a strategic spec")
 		_, _ = fmt.Fprintln(w, "  4. Run /opsx:propose to start a tactical change")
