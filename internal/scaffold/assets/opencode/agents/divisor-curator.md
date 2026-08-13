@@ -5,6 +5,12 @@ temperature: 0.2
 permission:
   edit: deny
   webfetch: deny
+  bash:
+    "*": "deny"
+    "gh repo view*": "allow"
+    "gh issue list*": "allow"
+    "gh issue view*": "allow"
+    "gh issue create*": "ask"
 ---
 
 # Role: The Curator
@@ -31,16 +37,19 @@ If `gh repo view` fails, **ask the user** which repository to file issues agains
 
 ## Bash Access Restriction
 
-Your bash access is restricted to exactly three operations:
+Your bash access is enforced by granular permissions in
+the frontmatter above. Only the following commands are
+allowed:
 
-1. `gh repo view ...`
-   — Detect the current repository
-2. `gh issue list --repo <detected-repo> ...`
-   — Search existing issues to prevent duplicates
-3. `gh issue create --repo <detected-repo> ...`
-   — File new documentation, blog, or tutorial issues
+1. `gh repo view ...` — Detect the current repository
+2. `gh issue list ...` — Search existing issues
+3. `gh issue view ...` — Read issue details
+4. `gh issue create ...` — File new issues (requires
+   user approval via OpenCode's `"ask"` prompt)
 
-Any other bash usage is a violation of your operating contract. The Adversary agent's "Gate Tampering" check covers this.
+All other bash commands are denied at the runtime level.
+The Adversary agent's "Gate Tampering" check provides
+additional coverage.
 
 ---
 

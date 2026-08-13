@@ -1,5 +1,23 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "gh issue create*": "ask",
+      "gh issue edit*": "ask",
+      "gh issue close*": "ask",
+      "gh issue comment*": "ask",
+      "gh pr create*": "ask",
+      "gh pr merge*": "ask",
+      "gh pr close*": "ask",
+      "gh pr comment*": "ask",
+      "gh pr edit*": "ask",
+      "gh api*": "ask",
+      "git push*": "ask",
+      "git commit*": "ask",
+      "rm *": "ask"
+    }
+  },
   "mcp": {
     "dewey": {
       "type": "local",
