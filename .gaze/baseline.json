@@ -1748,15 +1748,6 @@
     },
     {
       "package": "doctor",
-      "function": "checkBridgeFile",
-      "file": "/home/maburgha/GIT/ProdSec/uf-unbound-force/internal/doctor/checks.go",
-      "line": 1653,
-      "complexity": 3,
-      "line_coverage": 100,
-      "crap": 3
-    },
-    {
-      "package": "doctor",
       "function": "checkAgentContext",
       "file": "/home/maburgha/GIT/ProdSec/uf-unbound-force/internal/doctor/checks.go",
       "line": 1685,
@@ -4769,51 +4760,6 @@
       "complexity": 7,
       "line_coverage": 86.95652173913044,
       "crap": 7.10873674693844
-    },
-    {
-      "package": "scaffold",
-      "function": "replaceManagedBlock",
-      "file": "/home/maburgha/GIT/ProdSec/uf-unbound-force/internal/scaffold/scaffold.go",
-      "line": 1064,
-      "complexity": 3,
-      "line_coverage": 100,
-      "crap": 3
-    },
-    {
-      "package": "scaffold",
-      "function": "buildCLAUDEmdBlock",
-      "file": "/home/maburgha/GIT/ProdSec/uf-unbound-force/internal/scaffold/scaffold.go",
-      "line": 1084,
-      "complexity": 2,
-      "line_coverage": 100,
-      "crap": 2
-    },
-    {
-      "package": "scaffold",
-      "function": "ensureCLAUDEmd",
-      "file": "/home/maburgha/GIT/ProdSec/uf-unbound-force/internal/scaffold/scaffold.go",
-      "line": 1110,
-      "complexity": 13,
-      "line_coverage": 84.61538461538461,
-      "crap": 13.615384615384615
-    },
-    {
-      "package": "scaffold",
-      "function": "buildCursorrulesBlock",
-      "file": "/home/maburgha/GIT/ProdSec/uf-unbound-force/internal/scaffold/scaffold.go",
-      "line": 1186,
-      "complexity": 2,
-      "line_coverage": 100,
-      "crap": 2
-    },
-    {
-      "package": "scaffold",
-      "function": "ensureCursorrules",
-      "file": "/home/maburgha/GIT/ProdSec/uf-unbound-force/internal/scaffold/scaffold.go",
-      "line": 1216,
-      "complexity": 13,
-      "line_coverage": 84.61538461538461,
-      "crap": 13.615384615384615
     },
     {
       "package": "scaffold",

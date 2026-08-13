@@ -120,7 +120,7 @@ convention packs) are never overwritten.
 Commit and push the scaffolded files:
 
 ```bash
-git add .opencode/ openspec/ .specify/ .uf/ opencode.json CLAUDE.md
+git add .opencode/ openspec/ .specify/ .uf/ opencode.json
 git commit -m "chore: add Unbound Force framework"
 git push
 ```
@@ -146,8 +146,6 @@ uf init --divisor
   coding standards for Go, TypeScript, content
 - **5 OpenSpec templates** (`openspec/schemas/`) --
   proposal, design, spec, and task templates
-- **Bridge files** -- `CLAUDE.md` and `.cursorrules`
-  for AI tool compatibility
 
 Tool-owned files auto-update on re-run. User-owned
 files (agents, custom packs) are never overwritten.
