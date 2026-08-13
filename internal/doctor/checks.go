@@ -1665,7 +1665,7 @@ func checkAgentContext(opts *Options) CheckGroup {
 			Name:        "AGENTS.md",
 			Severity:    Fail,
 			Message:     "not found",
-			InstallHint: "Run: /uf.agent-brief in OpenCode",
+			InstallHint: "Create an AGENTS.md file in your project root describing the project for AI agents",
 		})
 		return group
 	}
@@ -1691,7 +1691,7 @@ func checkAgentContext(opts *Options) CheckGroup {
 				Name:        "Tier 1: " + sec.name,
 				Severity:    Fail,
 				Message:     "not found",
-				InstallHint: "Run: /uf.agent-brief in OpenCode",
+				InstallHint: fmt.Sprintf("Add a '%s' section to AGENTS.md", sec.name),
 			})
 		}
 	}
@@ -1720,7 +1720,7 @@ func checkAgentContext(opts *Options) CheckGroup {
 			Name:        "Line count",
 			Severity:    Warn,
 			Message:     fmt.Sprintf("%d lines (threshold: %d)", lineCount, agentContextLineCountThreshold),
-			InstallHint: "Run: /uf.agent-brief in OpenCode for condensing suggestions",
+			InstallHint: "Condense AGENTS.md — current line count exceeds threshold",
 		})
 	} else {
 		group.Results = append(group.Results, CheckResult{
@@ -1746,7 +1746,7 @@ func checkAgentContext(opts *Options) CheckGroup {
 				Name:        "Constitution reference",
 				Severity:    Warn,
 				Message:     "not referenced (.specify/ detected)",
-				InstallHint: "Run: /uf.agent-brief in OpenCode",
+				InstallHint: "Add a constitution reference to AGENTS.md (e.g., Instructions from: .specify/memory/constitution.md)",
 			})
 		}
 	}
@@ -1770,7 +1770,7 @@ func checkAgentContext(opts *Options) CheckGroup {
 				Name:        "Spec framework described",
 				Severity:    Warn,
 				Message:     "not described (specs/ or openspec/ detected)",
-				InstallHint: "Run: /uf.agent-brief in OpenCode",
+				InstallHint: "Add a Specification Workflow section to AGENTS.md describing your spec framework",
 			})
 		}
 	}

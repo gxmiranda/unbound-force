@@ -27,7 +27,7 @@ invoke:
 | 1668 | `"Run: /uf.agent-brief in OpenCode"` | `"Create an AGENTS.md file in your project root describing the project for AI agents"` |
 | 1694 | `"Run: /uf.agent-brief in OpenCode"` | `"Add a '<section>' section to AGENTS.md"` (dynamic per Tier 1 section) |
 | 1723 | `"Run: /uf.agent-brief in OpenCode"` | `"Condense AGENTS.md — current line count exceeds threshold"` |
-| 1749 | `"Run: /uf.agent-brief in OpenCode"` | `"Add a constitution reference to AGENTS.md (e.g., Instructions from: path/to/constitution.md)"` |
+| 1749 | `"Run: /uf.agent-brief in OpenCode"` | `"Add a constitution reference to AGENTS.md (e.g., Instructions from: .specify/memory/constitution.md)"` |
 | 1773 | `"Run: /uf.agent-brief in OpenCode"` | `"Add a Specification Workflow section to AGENTS.md describing your spec framework"` |
 
 Update the corresponding test assertion in

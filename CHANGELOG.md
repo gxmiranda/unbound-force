@@ -35,6 +35,12 @@ Each entry follows the format: `- <change-name>: <summary>`.
   Closes: #253)
 
 ### Fixed
+- fix-doctor-hints: Replace five hardcoded OpenCode-specific
+  `InstallHint` strings in `uf doctor` agent context checks
+  with tool-agnostic plain-language remediation instructions.
+  Adds regression guards for `/uf.` and `OpenCode` references
+  in hints, and a drift-detection test for Tier 1 sections.
+  (Spec: openspec/changes/fix-doctor-hints/, Fixes: #460)
 - fix-specify-init-invocation: Fixed `uf init` failing
   to create `.specify/` directory due to upstream
   specify-cli interface changes. Updated specify
