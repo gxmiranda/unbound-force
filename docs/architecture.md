@@ -286,11 +286,8 @@ when to stop. Skills keep agent files focused on
 identity and behavior while workflows stay modular and
 independently updatable.
 
-**Bridge files**:
+**Managed files**:
 ```
-CLAUDE.md          (tool-owned, references AGENTS.md +
-                    agent + convention pack files)
-.cursorrules       (tool-owned, Cursor IDE equivalent)
 .gitignore block   (appended, ignores .uf/ runtime data)
 ```
 

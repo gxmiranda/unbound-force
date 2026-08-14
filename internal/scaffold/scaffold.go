@@ -228,14 +228,11 @@ func Run(opts Options) (*Result, error) {
 	// so that .gitignore is ready before sub-tools create runtime files.
 	giResult := ensureGitignore(&opts)
 
-	// Ensure cross-tool bridge files exist so Claude Code and Cursor
-	// users discover convention packs out of the box.
+	// Ensure AGENTS.md pack section is up-to-date.
 	agentsResult := ensureAGENTSmdPackSection(&opts, lang)
-	claudeResult := ensureCLAUDEmd(&opts, lang)
-	cursorResult := ensureCursorrules(&opts, lang)
 
 	// Initialize sub-tools after file scaffolding, before summary.
-	subResults := append([]subToolResult{giResult, agentsResult, claudeResult, cursorResult}, initSubTools(&opts)...)
+	subResults := append([]subToolResult{giResult, agentsResult}, initSubTools(&opts)...)
 
 	// Migrate legacy .opencode/command/ to .opencode/commands/.
 	// Runs after initSubTools() so files created by specify init,
@@ -246,8 +243,11 @@ func Run(opts Options) (*Result, error) {
 
 	// Remove orphaned old-name command files left behind
 	// after the uf. namespace prefix rename.
-	migrated := cleanupRenamedCommands(opts.TargetDir)
+	migrated := cleanupRenamedCommands(opts.Stdout, opts.TargetDir)
 	result.Migrated = append(result.Migrated, migrated...)
+
+	// Warn about stale command references in agent files.
+	warnStaleCommandRefs(opts.Stdout, opts.TargetDir)
 
 	printSummary(opts.Stdout, opts.DivisorOnly, langExplicit, langDetected, result, subResults)
 	return result, nil
@@ -329,7 +329,8 @@ var renamedCommands = map[string]string{
 // cleanupRenamedCommands removes old-name command files that
 // were replaced by the uf. namespace prefix rename. Returns
 // the list of removed file paths (relative to targetDir).
-func cleanupRenamedCommands(targetDir string) []string {
+// Warnings for files that cannot be removed are written to w.
+func cleanupRenamedCommands(w io.Writer, targetDir string) []string {
 	var removed []string
 	for oldRel := range renamedCommands {
 		oldOut := mapAssetPath(oldRel)
@@ -337,10 +338,68 @@ func cleanupRenamedCommands(targetDir string) []string {
 		if _, err := os.Stat(oldPath); err == nil {
 			if err := os.Remove(oldPath); err == nil {
 				removed = append(removed, oldOut)
+			} else {
+				_, _ = fmt.Fprintf(w, "  ⚠  could not remove %s: %v\n", oldOut, err)
 			}
 		}
 	}
 	return removed
+}
+
+// warnStaleCommandRefs scans agent files in .opencode/agents/
+// for references to old (pre-namespace-prefix) command names
+// and prints a warning listing affected files and replacements.
+// Agent files are user-owned and are not modified.
+func warnStaleCommandRefs(w io.Writer, targetDir string) {
+	pattern := filepath.Join(targetDir, ".opencode", "agents", "*.md")
+	matches, err := filepath.Glob(pattern)
+	if err != nil || len(matches) == 0 {
+		return
+	}
+
+	// Build old->new command name mapping from renamedCommands.
+	// Keys: "/address-feedback", values: "/uf.address-feedback"
+	refMap := make(map[string]string, len(renamedCommands))
+	for oldRel, newRel := range renamedCommands {
+		oldBase := strings.TrimSuffix(filepath.Base(oldRel), ".md")
+		newBase := strings.TrimSuffix(filepath.Base(newRel), ".md")
+		refMap["/"+oldBase] = "/" + newBase
+	}
+
+	type staleRef struct {
+		file   string
+		oldRef string
+		newRef string
+	}
+	var found []staleRef
+
+	for _, m := range matches {
+		data, readErr := os.ReadFile(m)
+		if readErr != nil {
+			_, _ = fmt.Fprintf(w, "  warning: could not read %s: %v\n", filepath.Base(m), readErr)
+			continue
+		}
+		content := string(data)
+		base := filepath.Base(m)
+		for oldRef, newRef := range refMap {
+			if strings.Contains(content, oldRef) {
+				found = append(found, staleRef{file: base, oldRef: oldRef, newRef: newRef})
+			}
+		}
+	}
+
+	if len(found) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, "⚠  Stale command references in agent files:")
+	for _, f := range found {
+		_, _ = fmt.Fprintf(w, "    %s: %s → %s\n", f.file, f.oldRef, f.newRef)
+	}
+	_, _ = fmt.Fprintln(w, "  Agent files are user-owned and not auto-updated.")
+	_, _ = fmt.Fprintln(w, "  Update these references manually, or run `uf init --force` to")
+	_, _ = fmt.Fprintln(w, "  re-scaffold all agent files (this will overwrite customizations).")
 }
 
 // isToolOwned returns true if the file is maintained by the
@@ -1101,231 +1160,6 @@ func ensureAGENTSmdPackSection(opts *Options, lang string) subToolResult {
 	}
 }
 
-// replaceManagedBlock replaces the managed block (from marker to EOF)
-// in content with newBlock. Returns the updated content and whether
-// a change was made. If the managed block is already identical to
-// newBlock, the original content is returned unchanged.
-func replaceManagedBlock(content, marker, newBlock string) (string, bool) {
-	idx := strings.Index(content, marker)
-	if idx < 0 {
-		return content, false
-	}
-	prefix := content[:idx]
-	if prefix+newBlock == content {
-		return content, false
-	}
-	return prefix + newBlock, true
-}
-
-// claudemdMarker is the sentinel string used to detect the managed
-// block in CLAUDE.md. Same marker pattern as gitignoreMarker.
-const claudemdMarker = "# Unbound Force — managed by uf init"
-
-// buildCLAUDEmdBlock generates the managed block for CLAUDE.md.
-// root is the project root directory; when non-empty, empty custom
-// packs are excluded from the generated @-import lines (see
-// collectDeployedPacks).
-func buildCLAUDEmdBlock(lang, root string) string {
-	packs := collectDeployedPacks(lang, root)
-	var block strings.Builder
-	block.WriteString(claudemdMarker + "\n\n")
-	block.WriteString("@AGENTS.md\n")
-	block.WriteString("@.opencode/agents/cobalt-crush-dev.md\n\n")
-	block.WriteString("## Convention Packs\n\n")
-	for _, p := range packs {
-		block.WriteString("@.opencode/uf/packs/" + p + "\n")
-	}
-	block.WriteString("\n## Review Agents (read on-demand)\n\n")
-	block.WriteString("When performing code review, read the applicable\n")
-	block.WriteString("Divisor agent from .opencode/agents/:\n")
-	block.WriteString("- divisor-guard.md — intent drift, constitution\n")
-	block.WriteString("- divisor-architect.md — structure, patterns, DRY\n")
-	block.WriteString("- divisor-adversary.md — security, error handling\n")
-	block.WriteString("- divisor-testing.md — test quality, assertions\n")
-	block.WriteString("- divisor-sre.md — operations, performance\n")
-	return block.String()
-}
-
-// ensureCLAUDEmd creates or appends a managed block to CLAUDE.md with
-// @imports for AGENTS.md and deployed convention packs. Idempotent:
-// if the managed block already matches the expected content, the file
-// is not modified. Stale managed blocks are replaced in-place.
-// Uses opts.ReadFile/WriteFile for testability (dependency injection).
-func ensureCLAUDEmd(opts *Options, lang string) subToolResult {
-	claudePath := filepath.Join(opts.TargetDir, "CLAUDE.md")
-
-	existing, readErr := opts.ReadFile(claudePath)
-	if readErr != nil && !os.IsNotExist(readErr) {
-		return subToolResult{
-			name:   "CLAUDE.md",
-			action: "failed",
-			detail: fmt.Sprintf("read failed: %v", readErr),
-		}
-	}
-
-	newBlock := buildCLAUDEmdBlock(lang, opts.TargetDir)
-
-	// Marker present -- check whether managed block needs updating.
-	if readErr == nil && strings.Contains(string(existing), claudemdMarker) {
-		updated, changed := replaceManagedBlock(
-			string(existing), claudemdMarker, newBlock,
-		)
-		if !changed {
-			return subToolResult{
-				name:   "CLAUDE.md",
-				action: "already configured",
-			}
-		}
-		if writeErr := opts.WriteFile(claudePath, []byte(updated), 0o644); writeErr != nil {
-			return subToolResult{
-				name:   "CLAUDE.md",
-				action: "failed",
-				detail: fmt.Sprintf("write failed: %v", writeErr),
-			}
-		}
-		return subToolResult{
-			name:   "CLAUDE.md",
-			action: "updated",
-		}
-	}
-
-	// No marker -- create or append.
-	var content string
-	if readErr == nil {
-		content = string(existing)
-		if len(content) > 0 && !strings.HasSuffix(content, "\n\n") {
-			if !strings.HasSuffix(content, "\n") {
-				content += "\n"
-			}
-			content += "\n"
-		}
-	}
-	content += newBlock
-
-	if writeErr := opts.WriteFile(claudePath, []byte(content), 0o644); writeErr != nil {
-		return subToolResult{
-			name:   "CLAUDE.md",
-			action: "failed",
-			detail: fmt.Sprintf("write failed: %v", writeErr),
-		}
-	}
-
-	action := "configured"
-	if readErr == nil {
-		action = "appended"
-	}
-	return subToolResult{
-		name:   "CLAUDE.md",
-		action: action,
-	}
-}
-
-// cursorrulesMarker is the sentinel string used to detect the managed
-// block in .cursorrules. Same marker pattern as claudemdMarker.
-const cursorrulesMarker = claudemdMarker
-
-// buildCursorrulesBlock generates the managed block for .cursorrules.
-// root is the project root directory; when non-empty, empty custom
-// packs are excluded (see collectDeployedPacks).
-func buildCursorrulesBlock(lang, root string) string {
-	packs := collectDeployedPacks(lang, root)
-	var block strings.Builder
-	block.WriteString(cursorrulesMarker + "\n\n")
-	block.WriteString("This project follows coding conventions defined in\n")
-	block.WriteString("AGENTS.md and enforced through convention packs. Before\n")
-	block.WriteString("writing or reviewing code, read the applicable convention\n")
-	block.WriteString("pack(s) from .opencode/uf/packs/ and apply all rules\n")
-	block.WriteString("marked [MUST].\n\n")
-	block.WriteString("Available packs:\n")
-	for _, p := range packs {
-		block.WriteString("- .opencode/uf/packs/" + p + "\n")
-	}
-	block.WriteString("\nFor engineering philosophy and coding principles, read\n")
-	block.WriteString(".opencode/agents/cobalt-crush-dev.md.\n\n")
-	block.WriteString("When reviewing code, consult the applicable reviewer\n")
-	block.WriteString("checklist from .opencode/agents/:\n")
-	block.WriteString("- divisor-guard.md — intent drift, constitution\n")
-	block.WriteString("- divisor-architect.md — structure, patterns, DRY\n")
-	block.WriteString("- divisor-adversary.md — security, error handling\n")
-	block.WriteString("- divisor-testing.md — test quality, assertions\n")
-	block.WriteString("- divisor-sre.md — operations, performance\n")
-	return block.String()
-}
-
-// ensureCursorrules creates or appends a managed block to .cursorrules
-// with instructions to read AGENTS.md and convention packs. Idempotent:
-// if the managed block already matches the expected content, the file
-// is not modified. Stale managed blocks are replaced in-place.
-// Uses opts.ReadFile/WriteFile for testability (dependency injection).
-func ensureCursorrules(opts *Options, lang string) subToolResult {
-	rulesPath := filepath.Join(opts.TargetDir, ".cursorrules")
-
-	existing, readErr := opts.ReadFile(rulesPath)
-	if readErr != nil && !os.IsNotExist(readErr) {
-		return subToolResult{
-			name:   ".cursorrules",
-			action: "failed",
-			detail: fmt.Sprintf("read failed: %v", readErr),
-		}
-	}
-
-	newBlock := buildCursorrulesBlock(lang, opts.TargetDir)
-
-	// Marker present -- check whether managed block needs updating.
-	if readErr == nil && strings.Contains(string(existing), cursorrulesMarker) {
-		updated, changed := replaceManagedBlock(
-			string(existing), cursorrulesMarker, newBlock,
-		)
-		if !changed {
-			return subToolResult{
-				name:   ".cursorrules",
-				action: "already configured",
-			}
-		}
-		if writeErr := opts.WriteFile(rulesPath, []byte(updated), 0o644); writeErr != nil {
-			return subToolResult{
-				name:   ".cursorrules",
-				action: "failed",
-				detail: fmt.Sprintf("write failed: %v", writeErr),
-			}
-		}
-		return subToolResult{
-			name:   ".cursorrules",
-			action: "updated",
-		}
-	}
-
-	// No marker -- create or append.
-	var content string
-	if readErr == nil {
-		content = string(existing)
-		if len(content) > 0 && !strings.HasSuffix(content, "\n\n") {
-			if !strings.HasSuffix(content, "\n") {
-				content += "\n"
-			}
-			content += "\n"
-		}
-	}
-	content += newBlock
-
-	if writeErr := opts.WriteFile(rulesPath, []byte(content), 0o644); writeErr != nil {
-		return subToolResult{
-			name:   ".cursorrules",
-			action: "failed",
-			detail: fmt.Sprintf("write failed: %v", writeErr),
-		}
-	}
-
-	action := "configured"
-	if readErr == nil {
-		action = "appended"
-	}
-	return subToolResult{
-		name:   ".cursorrules",
-		action: action,
-	}
-}
-
 // hasRuleContent reports whether the convention pack file at path
 // contains actual rule content — defined as at least one non-whitespace
 // character after the last occurrence of the placeholder sentinel
@@ -1503,7 +1337,8 @@ func initSubTools(opts *Options) []subToolResult {
 		{"replicator", ".uf/replicator", ".uf/replicator/",
 			"Replicator workspace", nil},
 		{"specify", ".specify", ".specify/",
-			"Speckit framework", nil},
+			"Speckit framework",
+			[]string{"--here", "--integration", "opencode", "--offline"}},
 		{"openspec", filepath.Join("openspec", "config.yaml"),
 			"openspec/", "OpenSpec framework",
 			[]string{"--tools", "opencode"}},

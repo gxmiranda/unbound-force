@@ -5,17 +5,32 @@ Each entry follows the format: `- <change-name>: <summary>`.
 
 ## Unreleased
 
+### Changed
+- adopt-org-infra-release-workflows: Replace inline
+  release preflight and GoReleaser jobs with org-infra
+  reusable workflow callers (`reusable_release_preflight`
+  + `reusable_release_goreleaser` @ v0.7.1). Adds smart
+  re-run detection, spec-compliant semver comparator
+  (replaces `sort -V`), configurable `ci_checks` input
+  (build, lint, and security scan gates), skip inputs
+  for debugging, and concurrency guard. Signing secrets
+  check expanded to verify all 6 required secrets.
+  GoReleaser config gains `release.extra_files` for
+  Homebrew artifact upload. `sign-macos` stays inline.
+  Updated `docs/RELEASE_PROCESS.md` to reflect the new
+  pipeline, including org-infra upgrade path.
+  (Spec: openspec/changes/adopt-org-infra-release-workflows/,
+  Fixes: #428)
+
 ### Added
-- council-review-action: New composite GitHub Action for
-  AI code review using OpenCode with Divisor persona
-  discovery; auto-discovers agents from
-  `.opencode/agents/`, pre-fetches PR context (CI checks,
-  reviews, linked issues), invokes `opencode run`, and
-  outputs structured JSON for inline review comments;
+- council-review-action: Reusable composite GitHub Action
+  for multi-persona AI code review on PRs; discovers
+  Divisor reviewer personas from the repo's
+  `.opencode/agents/` directory, pre-fetches PR context,
+  and outputs structured JSON for inline review comments;
   three-tier persona fallback (repo, bundled,
   single-agent); diff noise filtering and line annotation
-  for accurate inline comment placement; 60-assertion test
-  suite across 26 scenarios
+  for accurate inline comment placement
   (Spec: openspec/changes/council-review-action/,
   Closes: #253)
 
@@ -29,6 +44,72 @@ Each entry follows the format: `- <change-name>: <summary>`.
   from "create" to "customize".
   (Spec: openspec/changes/fix-constitution-scaffold/,
   Fixes: #213)
+- fix-specify-init-invocation: Fixed `uf init` failing
+  to create `.specify/` directory due to upstream
+  specify-cli interface changes. Updated specify
+  invocation from bare `specify init` to
+  `specify init --here --integration opencode --offline`
+  to match the new CLI contract.
+  (Spec: openspec/changes/fix-specify-init-invocation/,
+  Fixes: #216)
+- unleash-demo-output-fidelity: `/uf.unleash` Step 10
+  Demo now includes a JIT re-read guard ensuring
+  prescribed Next Steps output is reproduced verbatim
+  from the template, not improvised after compression.
+  Reconciles divergent Next Steps blocks into one
+  canonical format. Adds anti-improvisation guardrail
+  and Step 8 equivalence note (review council already
+  runs in Step 8). Scaffolds `always-on-guidance` skill
+  for org-wide propagation via `uf init`. Clarifies
+  AGENTS.md review-council rule. Extends reverse-drift
+  test to cover `.opencode/skills/`.
+  (Spec: openspec/changes/unleash-demo-output-fidelity/)
+- fix-rpm-version-skew: `uf setup` RPM install path now
+  resolves each companion tool's latest release
+  independently via `gh release view` instead of using
+  the uf binary's own version. Fixes 404 errors on
+  Fedora/RHEL when gaze or replicator versions diverge
+  from uf. Adds `ResolveRelease` injectable dependency
+  to `Options` for testability. Reorders `buildSteps()`
+  so GitHub CLI is installed before Gaze.
+  (Spec: openspec/changes/fix-rpm-version-skew/,
+  Fixes: #455)
+- fix-incorrect-guardrails: Step 6 of `/uf.init` now
+  injects command-specific guardrails for
+  `speckit.implement.md`, `speckit.constitution.md`,
+  and `speckit.taskstoissues.md` instead of sharing
+  the spec-phase guardrails that contradicted each
+  command's operational model. Existing repos with
+  incorrect guardrails are automatically corrected
+  on next `/uf.init` run via replace-if-incorrect
+  idempotency. Added guardrail content regression
+  tests.
+  (Spec: openspec/changes/fix-incorrect-guardrails/,
+  Fixes: #256)
+- uf-init-rename-migration: Hardened `uf init` command
+  rename migration with warnings for stale agent
+  references and removal failures. `cleanupRenamedCommands`
+  now reports non-removable files; `warnStaleCommandRefs`
+  scans agent files for old command paths.
+  (Spec: openspec/changes/fix-uf-init-command-rename-migration/,
+  Fixes: #419)
+- fix-review-pr-step7-gate: Step 7 verdict-posting offer
+  in `/uf.review-pr` was gated behind a HIGH+ findings
+  condition, causing the `AskUserQuestion` to be skipped
+  when a review had only MEDIUM/LOW findings or zero
+  findings. Restructured Step 7 so the framing text is
+  conditional on HIGH+ findings while the posting offer
+  always executes.
+  (Spec: openspec/changes/fix-review-pr-step7-gate/,
+  Fixes: #441)
+- fix-devpod-provider: Removed incorrect `LookPath("podman")`
+  pre-flight check from `DevPodBackend.Create()`. The docker
+  provider aliased as "podman" (configured by `uf setup`) does
+  not require the podman binary in PATH. Added diagnostic hint
+  ("run 'uf doctor' to diagnose or 'uf setup' to configure")
+  to `devpod up` error paths in both `Create()` and `Start()`.
+  (Spec: openspec/changes/fix-devpod-provider/,
+  Fixes: #431)
 - mutimind-acceptance-gate: Added AskUserQuestion
   confirmation gate before acceptance decision CLI
   (`go run cmd/mutimind/main.go decide`) in
@@ -38,7 +119,29 @@ Each entry follows the format: `- <change-name>: <summary>`.
   (Spec: openspec/changes/mutimind-acceptance-gate/,
   Fixes: #351)
 
+### Removed
+- remove-bridge-file-scaffolding: Removed CLAUDE.md and
+  .cursorrules bridge file scaffolding from `uf init` and
+  bridge file checks from `uf doctor`. OpenCode is the only
+  officially supported platform; bridge files for Claude Code
+  and Cursor were experimental and are no longer maintained.
+  Existing bridge files in user repos are not deleted.
+  Updated `/uf.agent-brief` command to remove bridge file
+  verification step and references. Cleaned up QUICKSTART.md
+  and architecture docs.
+  (Spec: openspec/changes/remove-bridge-file-scaffolding/,
+  Fixes: #459)
+
 ### Changed
+- council-review-sandbox: Runtime permission sandbox for
+  council review action; enforces tool restrictions via
+  `OPENCODE_CONFIG_CONTENT` permission config (denies
+  bash, edit, webfetch, websearch, skill); `--pure` flag
+  isolates external MCP plugins; explicit deny of
+  ask-default permissions for headless CI; migrated 9
+  Divisor agents from deprecated `tools:` to `permission:`
+  frontmatter syntax
+  (Spec: openspec/changes/council-review-sandbox/)
 - All 10 uf-owned slash commands renamed to `uf.`
   dot-notation namespace prefix: `/address-feedback`
   → `/uf.address-feedback`, `/agent-brief` →

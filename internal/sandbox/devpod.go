@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,14 @@ var validIDEs = []string{
 	"none", "vscode", "openvscode",
 	"fleet", "jupyternotebook", "cursor",
 }
+
+// safeWSNameRe validates that a workspace name contains only
+// characters safe for shell command interpolation. This is
+// the enforcement boundary for Principle V (Security by Default):
+// even though projectName() sanitizes upstream, this guard
+// ensures the invariant holds regardless of how wsName is
+// derived in the future.
+var safeWSNameRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
 
 // validateIDE checks that the IDE value is in the set of
 // DevPod-supported IDEs. Returns an error listing all valid
@@ -42,7 +51,7 @@ func (b *DevPodBackend) Name() string { return BackendDevPod }
 
 // devpodWorkspaceName returns the DevPod workspace name
 // for a project: "uf-sandbox-<project-name>". Matches the
-// Podman persistent workspace naming convention (D5).
+// DevPod workspace naming convention (D5).
 func devpodWorkspaceName(opts Options) string {
 	return "uf-sandbox-" + projectName(opts.ProjectDir)
 }
@@ -51,23 +60,19 @@ func devpodWorkspaceName(opts Options) string {
 // devcontainer configuration.
 //
 // Pre-flight checks:
-//  1. podman in PATH (DevPod Podman provider requirement)
-//  2. DevPod >= 0.5.0 (D5b: minimum version)
-//  3. .devcontainer/devcontainer.json exists
+//  1. DevPod >= 0.5.0 (D5b: minimum version)
+//  2. .devcontainer/devcontainer.json exists
 //
 // Then calls: devpod up <project-dir> --provider podman
 // --id <workspace-name> --ide none [--workspace-env ...]
+//
+// The --provider podman flag references the docker provider
+// registered under the name "podman" by uf setup
+// (devpod provider add docker --name podman -o DOCKER_PATH=podman).
+// It does not require podman to be in PATH.
 func (b *DevPodBackend) Create(opts Options) error {
 	opts.defaults()
 	opts = DefaultConfig(opts)
-
-	// Pre-flight: podman must be installed for the DevPod
-	// Podman provider (D4).
-	if _, err := opts.LookPath("podman"); err != nil {
-		return fmt.Errorf(
-			"podman not found — DevPod requires Podman as its container provider. " +
-				"Install: brew install podman")
-	}
 
 	// Pre-flight: verify DevPod >= 0.5.0 (D5b).
 	if err := checkDevPodVersion(opts); err != nil {
@@ -123,8 +128,9 @@ func (b *DevPodBackend) Create(opts Options) error {
 				"DevPod workspace created: %s "+
 					"(IDE tunnel had a non-fatal error)\n", wsName)
 		} else {
-			return fmt.Errorf("devpod up failed: %w: %s", err,
-				strings.TrimSpace(string(out)))
+			return fmt.Errorf("devpod up failed: %w: %s — "+
+				"run 'uf doctor' to diagnose or 'uf setup' to configure",
+				err, strings.TrimSpace(string(out)))
 		}
 	} else {
 		fmt.Fprintf(opts.Stderr, "DevPod workspace created: %s\n", wsName)
@@ -181,8 +187,9 @@ func (b *DevPodBackend) Start(opts Options) error {
 				"DevPod workspace resumed: %s "+
 					"(IDE tunnel had a non-fatal error)\n", wsName)
 		} else {
-			return fmt.Errorf("devpod up failed: %w: %s", err,
-				strings.TrimSpace(string(out)))
+			return fmt.Errorf("devpod up failed: %w: %s — "+
+				"run 'uf doctor' to diagnose or 'uf setup' to configure",
+				err, strings.TrimSpace(string(out)))
 		}
 	}
 
@@ -272,10 +279,16 @@ func (b *DevPodBackend) isWorkspaceRunning(opts Options, wsName string) bool {
 // (which would hang if DevPod already has a tunnel open on
 // port 4096) and --command for clean command execution.
 //
-// Injection safety: the workspace name is passed as a
-// separate exec.Command argument. The --command value is a
-// hardcoded literal with no user-controlled input.
+// Injection safety: wsName is derived from opts.ProjectDir
+// via projectName(), which sanitizes to [a-z0-9-]. The guard
+// below enforces this invariant at the shell-execution boundary
+// so that future changes to wsName derivation cannot silently
+// reintroduce an injection vector (Principle V).
 func (b *DevPodBackend) startServerViaSSH(opts Options, wsName string) error {
+	if !safeWSNameRe.MatchString(wsName) {
+		return fmt.Errorf("unsafe workspace name %q: "+
+			"must match [a-z0-9][a-z0-9-]*[a-z0-9]", wsName)
+	}
 	_, err := opts.ExecCmd("devpod", "ssh", wsName,
 		"--start-services=false",
 		"--workdir", "/",

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -183,7 +184,8 @@ var expectedAssetPaths = []string{
 	"openspec/schemas/unbound-force/templates/spec.md",
 	"openspec/schemas/unbound-force/templates/design.md",
 	"openspec/schemas/unbound-force/templates/tasks.md",
-	// Swarm skills (3)
+	// Swarm skills (4)
+	"opencode/skills/always-on-guidance/SKILL.md",
 	"opencode/skills/pre-flight/SKILL.md",
 	"opencode/skills/review-context/SKILL.md",
 	"opencode/skills/speckit-workflow/SKILL.md",
@@ -1255,8 +1257,12 @@ var knownNonEmbeddedFiles = map[string]bool{
 	".opencode/commands/handoff.md":          true,
 	".opencode/commands/inbox.md":            true,
 	".opencode/commands/org.md":              true,
+	// OpenSpec skills — created by openspec init, not scaffolded by uf init
+	".opencode/skills/openspec-apply-change/SKILL.md":   true,
+	".opencode/skills/openspec-archive-change/SKILL.md": true,
+	".opencode/skills/openspec-explore/SKILL.md":        true,
+	".opencode/skills/openspec-propose/SKILL.md":        true,
 	// Replicator-scaffolded skills — created by replicator init
-	".opencode/skills/always-on-guidance/SKILL.md": true,
 	".opencode/skills/forge-coordination/SKILL.md": true,
 	".opencode/skills/forge-global/SKILL.md":       true,
 	".opencode/skills/learning-systems/SKILL.md":   true,
@@ -1285,6 +1291,7 @@ func TestCanonicalSources_AreEmbedded(t *testing.T) {
 	canonicalDirs := []string{
 		".opencode/commands",
 		".opencode/agents",
+		".opencode/skills",
 		".opencode/uf/packs",
 	}
 
@@ -1296,6 +1303,11 @@ func TestCanonicalSources_AreEmbedded(t *testing.T) {
 		err := filepath.Walk(fullDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() {
 				return err
+			}
+			// Skip hidden files (e.g., .DS_Store) — they are not
+			// canonical source files and should not be tracked.
+			if strings.HasPrefix(info.Name(), ".") {
+				return nil
 			}
 			relPath, _ := filepath.Rel(root, path)
 			if knownNonEmbeddedFiles[relPath] {
@@ -2049,6 +2061,107 @@ func TestRun_LegacyFileWarning(t *testing.T) {
 	for _, f := range legacyFiles {
 		if _, err := os.Stat(filepath.Join(agentsDir, f)); os.IsNotExist(err) {
 			t.Errorf("legacy file %s should NOT be deleted", f)
+		}
+	}
+}
+
+func TestRun_DoesNotCreateBridgeFiles(t *testing.T) {
+	dir := t.TempDir()
+	var buf bytes.Buffer
+
+	result, err := Run(Options{
+		TargetDir: dir,
+		Version:   "1.0.0-test",
+		Stdout:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("Run() error: %v", err)
+	}
+
+	// CLAUDE.md must not exist after Run.
+	if _, statErr := os.Stat(filepath.Join(dir, "CLAUDE.md")); statErr == nil {
+		t.Error("CLAUDE.md should not be created by Run()")
+	}
+
+	// .cursorrules must not exist after Run.
+	if _, statErr := os.Stat(filepath.Join(dir, ".cursorrules")); statErr == nil {
+		t.Error(".cursorrules should not be created by Run()")
+	}
+
+	// Result slices must not reference bridge file names.
+	allPaths := append(append(append(append(
+		result.Created,
+		result.Skipped...),
+		result.Overwritten...),
+		result.Updated...),
+		result.Migrated...)
+	for _, p := range allPaths {
+		if strings.Contains(p, "CLAUDE") {
+			t.Errorf("Result references CLAUDE file: %q", p)
+		}
+		if strings.Contains(p, "cursorrules") {
+			t.Errorf("Result references cursorrules file: %q", p)
+		}
+	}
+}
+
+func TestRun_DoesNotModifyExistingBridgeFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	// Pre-create bridge files with known content.
+	claudePath := filepath.Join(dir, "CLAUDE.md")
+	cursorPath := filepath.Join(dir, ".cursorrules")
+	originalClaude := "# My project CLAUDE instructions\n"
+	originalCursor := "# My project cursor rules\n"
+
+	if err := os.WriteFile(claudePath, []byte(originalClaude), 0o644); err != nil {
+		t.Fatalf("write CLAUDE.md: %v", err)
+	}
+	if err := os.WriteFile(cursorPath, []byte(originalCursor), 0o644); err != nil {
+		t.Fatalf("write .cursorrules: %v", err)
+	}
+
+	var buf bytes.Buffer
+	result, err := Run(Options{
+		TargetDir: dir,
+		Version:   "1.0.0-test",
+		Stdout:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("Run() error: %v", err)
+	}
+
+	// CLAUDE.md must still exist with original content.
+	gotClaude, err := os.ReadFile(claudePath)
+	if err != nil {
+		t.Fatalf("read CLAUDE.md after Run: %v", err)
+	}
+	if string(gotClaude) != originalClaude {
+		t.Errorf("CLAUDE.md content changed: got %q, want %q", string(gotClaude), originalClaude)
+	}
+
+	// .cursorrules must still exist with original content.
+	gotCursor, err := os.ReadFile(cursorPath)
+	if err != nil {
+		t.Fatalf("read .cursorrules after Run: %v", err)
+	}
+	if string(gotCursor) != originalCursor {
+		t.Errorf(".cursorrules content changed: got %q, want %q", string(gotCursor), originalCursor)
+	}
+
+	// Result slices must not reference bridge file names.
+	allPaths := append(append(append(append(
+		result.Created,
+		result.Skipped...),
+		result.Overwritten...),
+		result.Updated...),
+		result.Migrated...)
+	for _, p := range allPaths {
+		if strings.Contains(p, "CLAUDE") {
+			t.Errorf("Result references CLAUDE file: %q", p)
+		}
+		if strings.Contains(p, "cursorrules") {
+			t.Errorf("Result references cursorrules file: %q", p)
 		}
 	}
 }
@@ -3934,7 +4047,7 @@ func TestInitSubTools_ConcurrentAllResults(t *testing.T) {
 
 	expectedCmds := []string{
 		"dewey init", "dewey index --no-embeddings",
-		"replicator init", "specify init",
+		"replicator init", "specify init --here --integration opencode --offline",
 		"openspec init --tools opencode", "gaze init",
 	}
 	for _, cmd := range expectedCmds {
@@ -4303,12 +4416,12 @@ func TestInitSubTools_SpecifyInit(t *testing.T) {
 
 	found := false
 	for _, call := range rec.calls {
-		if call == "specify init" {
+		if call == "specify init --here --integration opencode --offline" {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected 'specify init' call, got: %v", rec.calls)
+		t.Errorf("expected 'specify init --here --integration opencode --offline' call, got: %v", rec.calls)
 	}
 }
 
@@ -4335,7 +4448,7 @@ func TestInitSubTools_SpecifySkipped(t *testing.T) {
 	}
 
 	for _, call := range rec.calls {
-		if call == "specify init" {
+		if call == "specify init --here --integration opencode --offline" {
 			t.Error("specify init should NOT be called when .specify/ exists")
 		}
 	}
@@ -4364,7 +4477,7 @@ func TestInitSubTools_SpecifyFailed(t *testing.T) {
 	dir := t.TempDir()
 	rec := &scaffoldCmdRecorder{
 		errors: map[string]error{
-			"specify init": fmt.Errorf("init failed"),
+			"specify init --here --integration opencode --offline": fmt.Errorf("init failed"),
 		},
 	}
 
@@ -4922,473 +5035,6 @@ func TestEnsureAGENTSmdPackSection_Idempotent(t *testing.T) {
 	}
 }
 
-func TestEnsureCLAUDEmd_FreshDir(t *testing.T) {
-	dir := t.TempDir()
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCLAUDEmd(opts, "go")
-
-	if result.action != "configured" {
-		t.Errorf("expected action 'configured', got %q", result.action)
-	}
-
-	content, err := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
-	}
-	text := string(content)
-
-	if !strings.Contains(text, claudemdMarker) {
-		t.Error("expected marker in CLAUDE.md")
-	}
-	if !strings.Contains(text, "@AGENTS.md") {
-		t.Error("expected @AGENTS.md import")
-	}
-	if !strings.Contains(text, "@.opencode/agents/cobalt-crush-dev.md") {
-		t.Error("expected cobalt-crush @import")
-	}
-	if !strings.Contains(text, "@.opencode/uf/packs/go.md") {
-		t.Error("expected Go pack @import")
-	}
-	if !strings.Contains(text, "@.opencode/uf/packs/default.md") {
-		t.Error("expected default pack @import")
-	}
-	if !strings.Contains(text, "divisor-guard.md") {
-		t.Error("expected Divisor review agent reference")
-	}
-}
-
-func TestEnsureCLAUDEmd_ExistingWithoutMarker(t *testing.T) {
-	dir := t.TempDir()
-
-	existing := "# My Project Claude Config\n\nSome rules.\n"
-	claudePath := filepath.Join(dir, "CLAUDE.md")
-	if err := os.WriteFile(claudePath, []byte(existing), 0o644); err != nil {
-		t.Fatalf("write CLAUDE.md: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCLAUDEmd(opts, "go")
-
-	if result.action != "appended" {
-		t.Errorf("expected action 'appended', got %q", result.action)
-	}
-
-	content, err := os.ReadFile(claudePath)
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
-	}
-	text := string(content)
-
-	if !strings.HasPrefix(text, existing) {
-		t.Error("existing content not preserved")
-	}
-	if !strings.Contains(text, claudemdMarker) {
-		t.Error("expected marker appended")
-	}
-}
-
-func TestReplaceManagedBlock_NoMarker(t *testing.T) {
-	content := "some content without marker\n"
-	result, changed := replaceManagedBlock(content, claudemdMarker, "new block")
-	if changed {
-		t.Error("expected no change when marker absent")
-	}
-	if result != content {
-		t.Error("expected original content returned")
-	}
-}
-
-func TestReplaceManagedBlock_Identical(t *testing.T) {
-	block := claudemdMarker + "\n\n@AGENTS.md\n"
-	result, changed := replaceManagedBlock(block, claudemdMarker, block)
-	if changed {
-		t.Error("expected no change when content identical")
-	}
-	if result != block {
-		t.Error("expected original content returned")
-	}
-}
-
-func TestReplaceManagedBlock_Updated(t *testing.T) {
-	prefix := "# My Project\n\n"
-	oldBlock := claudemdMarker + "\n\nold content\n"
-	newBlock := claudemdMarker + "\n\nnew content\n"
-	content := prefix + oldBlock
-
-	result, changed := replaceManagedBlock(content, claudemdMarker, newBlock)
-	if !changed {
-		t.Error("expected change when content differs")
-	}
-	if result != prefix+newBlock {
-		t.Errorf("unexpected result:\n%s", result)
-	}
-}
-
-func TestReplaceManagedBlock_PreservesPrefix(t *testing.T) {
-	prefix := "User content line 1\nUser content line 2\n\n"
-	oldBlock := claudemdMarker + "\n\nmanaged stuff\n"
-	newBlock := claudemdMarker + "\n\nupdated managed stuff\n"
-	content := prefix + oldBlock
-
-	result, changed := replaceManagedBlock(content, claudemdMarker, newBlock)
-	if !changed {
-		t.Error("expected change")
-	}
-	if !strings.HasPrefix(result, prefix) {
-		t.Error("prefix should be preserved")
-	}
-	if !strings.HasSuffix(result, "updated managed stuff\n") {
-		t.Error("new block should be at end")
-	}
-}
-
-func TestEnsureCLAUDEmd_AlreadyConfigured(t *testing.T) {
-	dir := t.TempDir()
-
-	existing := buildCLAUDEmdBlock("go", "")
-	claudePath := filepath.Join(dir, "CLAUDE.md")
-	if err := os.WriteFile(claudePath, []byte(existing), 0o644); err != nil {
-		t.Fatalf("write CLAUDE.md: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCLAUDEmd(opts, "go")
-
-	if result.action != "already configured" {
-		t.Errorf("expected action 'already configured', got %q", result.action)
-	}
-
-	after, err := os.ReadFile(claudePath)
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
-	}
-	if string(after) != existing {
-		t.Error("CLAUDE.md should be unchanged when block already matches")
-	}
-}
-
-func TestEnsureCLAUDEmd_StaleContent(t *testing.T) {
-	dir := t.TempDir()
-
-	// Seed with an older managed block missing cobalt-crush and
-	// review agents sections.
-	stale := claudemdMarker + "\n\n@AGENTS.md\n\n## Convention Packs\n\n" +
-		"@.opencode/uf/packs/default.md\n@.opencode/uf/packs/go.md\n"
-	claudePath := filepath.Join(dir, "CLAUDE.md")
-	if err := os.WriteFile(claudePath, []byte(stale), 0o644); err != nil {
-		t.Fatalf("write CLAUDE.md: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCLAUDEmd(opts, "go")
-
-	if result.action != "updated" {
-		t.Errorf("expected action 'updated', got %q", result.action)
-	}
-
-	after, err := os.ReadFile(claudePath)
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
-	}
-	text := string(after)
-
-	if !strings.Contains(text, "@.opencode/agents/cobalt-crush-dev.md") {
-		t.Error("expected cobalt-crush @import after update")
-	}
-	if !strings.Contains(text, "divisor-guard.md") {
-		t.Error("expected review agents section after update")
-	}
-}
-
-func TestEnsureCLAUDEmd_StaleContentPreservesPrefix(t *testing.T) {
-	dir := t.TempDir()
-
-	// Seed with user content above the managed block.
-	prefix := "# My Project\n\nCustom instructions.\n\n"
-	stale := prefix + claudemdMarker + "\n\n@AGENTS.md\n"
-	claudePath := filepath.Join(dir, "CLAUDE.md")
-	if err := os.WriteFile(claudePath, []byte(stale), 0o644); err != nil {
-		t.Fatalf("write CLAUDE.md: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCLAUDEmd(opts, "go")
-
-	if result.action != "updated" {
-		t.Errorf("expected action 'updated', got %q", result.action)
-	}
-
-	after, err := os.ReadFile(claudePath)
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
-	}
-	text := string(after)
-
-	if !strings.HasPrefix(text, prefix) {
-		t.Error("user content above marker should be preserved")
-	}
-	if !strings.Contains(text, "divisor-guard.md") {
-		t.Error("expected review agents section after update")
-	}
-}
-
-func TestEnsureCLAUDEmd_Idempotent(t *testing.T) {
-	dir := t.TempDir()
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	r1 := ensureCLAUDEmd(opts, "go")
-	if r1.action != "configured" {
-		t.Errorf("first call: expected 'configured', got %q", r1.action)
-	}
-
-	content1, _ := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
-
-	r2 := ensureCLAUDEmd(opts, "go")
-	if r2.action != "already configured" {
-		t.Errorf("second call: expected 'already configured', got %q", r2.action)
-	}
-
-	content2, _ := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
-	if !bytes.Equal(content1, content2) {
-		t.Error("content should be identical after second call")
-	}
-}
-
-func TestEnsureCursorrules_FreshDir(t *testing.T) {
-	dir := t.TempDir()
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCursorrules(opts, "go")
-
-	if result.action != "configured" {
-		t.Errorf("expected action 'configured', got %q", result.action)
-	}
-
-	content, err := os.ReadFile(filepath.Join(dir, ".cursorrules"))
-	if err != nil {
-		t.Fatalf("read .cursorrules: %v", err)
-	}
-	text := string(content)
-
-	if !strings.Contains(text, cursorrulesMarker) {
-		t.Error("expected marker in .cursorrules")
-	}
-	if !strings.Contains(text, "AGENTS.md") {
-		t.Error("expected AGENTS.md reference")
-	}
-	if !strings.Contains(text, ".opencode/uf/packs/go.md") {
-		t.Error("expected Go pack reference")
-	}
-	if !strings.Contains(text, "cobalt-crush-dev.md") {
-		t.Error("expected cobalt-crush agent reference")
-	}
-	if !strings.Contains(text, "divisor-guard.md") {
-		t.Error("expected Divisor review agent reference")
-	}
-}
-
-func TestEnsureCursorrules_ExistingWithoutMarker(t *testing.T) {
-	dir := t.TempDir()
-
-	existing := "Use TypeScript strict mode.\n"
-	rulesPath := filepath.Join(dir, ".cursorrules")
-	if err := os.WriteFile(rulesPath, []byte(existing), 0o644); err != nil {
-		t.Fatalf("write .cursorrules: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCursorrules(opts, "typescript")
-
-	if result.action != "appended" {
-		t.Errorf("expected action 'appended', got %q", result.action)
-	}
-
-	content, err := os.ReadFile(rulesPath)
-	if err != nil {
-		t.Fatalf("read .cursorrules: %v", err)
-	}
-	text := string(content)
-
-	if !strings.HasPrefix(text, existing) {
-		t.Error("existing content not preserved")
-	}
-	if !strings.Contains(text, ".opencode/uf/packs/typescript.md") {
-		t.Error("expected TypeScript pack reference")
-	}
-}
-
-func TestEnsureCursorrules_AlreadyConfigured(t *testing.T) {
-	dir := t.TempDir()
-
-	existing := buildCursorrulesBlock("go", "")
-	rulesPath := filepath.Join(dir, ".cursorrules")
-	if err := os.WriteFile(rulesPath, []byte(existing), 0o644); err != nil {
-		t.Fatalf("write .cursorrules: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCursorrules(opts, "go")
-
-	if result.action != "already configured" {
-		t.Errorf("expected action 'already configured', got %q", result.action)
-	}
-
-	after, err := os.ReadFile(rulesPath)
-	if err != nil {
-		t.Fatalf("read .cursorrules: %v", err)
-	}
-	if string(after) != existing {
-		t.Error(".cursorrules should be unchanged when block already matches")
-	}
-}
-
-func TestEnsureCursorrules_StaleContent(t *testing.T) {
-	dir := t.TempDir()
-
-	// Seed with an older managed block missing cobalt-crush and
-	// review agents sections.
-	stale := cursorrulesMarker + "\n\nThis project follows coding conventions.\n\n" +
-		"Available packs:\n- .opencode/uf/packs/default.md\n"
-	rulesPath := filepath.Join(dir, ".cursorrules")
-	if err := os.WriteFile(rulesPath, []byte(stale), 0o644); err != nil {
-		t.Fatalf("write .cursorrules: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCursorrules(opts, "go")
-
-	if result.action != "updated" {
-		t.Errorf("expected action 'updated', got %q", result.action)
-	}
-
-	after, err := os.ReadFile(rulesPath)
-	if err != nil {
-		t.Fatalf("read .cursorrules: %v", err)
-	}
-	text := string(after)
-
-	if !strings.Contains(text, "cobalt-crush-dev.md") {
-		t.Error("expected cobalt-crush reference after update")
-	}
-	if !strings.Contains(text, "divisor-guard.md") {
-		t.Error("expected review agents section after update")
-	}
-}
-
-func TestEnsureCursorrules_StaleContentPreservesPrefix(t *testing.T) {
-	dir := t.TempDir()
-
-	prefix := "Use TypeScript strict mode.\n\n"
-	stale := prefix + cursorrulesMarker + "\n\nSome old rules.\n"
-	rulesPath := filepath.Join(dir, ".cursorrules")
-	if err := os.WriteFile(rulesPath, []byte(stale), 0o644); err != nil {
-		t.Fatalf("write .cursorrules: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCursorrules(opts, "go")
-
-	if result.action != "updated" {
-		t.Errorf("expected action 'updated', got %q", result.action)
-	}
-
-	after, err := os.ReadFile(rulesPath)
-	if err != nil {
-		t.Fatalf("read .cursorrules: %v", err)
-	}
-	text := string(after)
-
-	if !strings.HasPrefix(text, prefix) {
-		t.Error("user content above marker should be preserved")
-	}
-	if !strings.Contains(text, "divisor-guard.md") {
-		t.Error("expected review agents section after update")
-	}
-}
-
-func TestEnsureCursorrules_Idempotent(t *testing.T) {
-	dir := t.TempDir()
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	r1 := ensureCursorrules(opts, "go")
-	if r1.action != "configured" {
-		t.Errorf("first call: expected 'configured', got %q", r1.action)
-	}
-
-	content1, _ := os.ReadFile(filepath.Join(dir, ".cursorrules"))
-
-	r2 := ensureCursorrules(opts, "go")
-	if r2.action != "already configured" {
-		t.Errorf("second call: expected 'already configured', got %q", r2.action)
-	}
-
-	content2, _ := os.ReadFile(filepath.Join(dir, ".cursorrules"))
-	if !bytes.Equal(content1, content2) {
-		t.Error("content should be identical after second call")
-	}
-}
-
 func TestCollectDeployedPacks_Go(t *testing.T) {
 	packs := collectDeployedPacks("go", "")
 
@@ -5688,97 +5334,6 @@ func TestFilterEmptyCustomPacks_KeepsPopulated(t *testing.T) {
 
 	if len(got) != 2 {
 		t.Errorf("expected 2 packs (populated custom kept), got %d: %v", len(got), got)
-	}
-}
-
-// --- ensureCLAUDEmd with empty custom packs tests ---
-
-func TestEnsureCLAUDEmd_EmptyCustomPacksOmitted(t *testing.T) {
-	dir := t.TempDir()
-	packsDir := filepath.Join(dir, ".opencode", "uf", "packs")
-	if err := os.MkdirAll(packsDir, 0o755); err != nil {
-		t.Fatalf("mkdir packs: %v", err)
-	}
-
-	sentinel := "<!-- Add project-specific rules below this line -->"
-	for _, name := range []string{"default-custom.md", "content-custom.md", "go-custom.md"} {
-		if err := os.WriteFile(filepath.Join(packsDir, name), []byte(sentinel), 0o644); err != nil {
-			t.Fatalf("write %s: %v", name, err)
-		}
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCLAUDEmd(opts, "go")
-	if result.action == "failed" {
-		t.Fatalf("ensureCLAUDEmd failed: %s", result.detail)
-	}
-
-	data, err := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
-	}
-	content := string(data)
-
-	for _, name := range []string{"default-custom.md", "content-custom.md", "go-custom.md"} {
-		if strings.Contains(content, name) {
-			t.Errorf("empty custom pack %q should not appear in CLAUDE.md, but found it", name)
-		}
-	}
-	// Non-custom packs must be present.
-	for _, name := range []string{"default.md", "severity.md", "content.md", "go.md"} {
-		if !strings.Contains(content, name) {
-			t.Errorf("required pack %q missing from CLAUDE.md", name)
-		}
-	}
-}
-
-func TestEnsureCLAUDEmd_PopulatedCustomPackIncluded(t *testing.T) {
-	dir := t.TempDir()
-	packsDir := filepath.Join(dir, ".opencode", "uf", "packs")
-	if err := os.MkdirAll(packsDir, 0o755); err != nil {
-		t.Fatalf("mkdir packs: %v", err)
-	}
-
-	sentinel := "<!-- Add project-specific rules below this line -->"
-	// default-custom empty, go-custom populated.
-	if err := os.WriteFile(filepath.Join(packsDir, "default-custom.md"), []byte(sentinel), 0o644); err != nil {
-		t.Fatalf("write default-custom.md: %v", err)
-	}
-	populated := sentinel + "\n\n## CR-001 [MUST] rule\n"
-	if err := os.WriteFile(filepath.Join(packsDir, "go-custom.md"), []byte(populated), 0o644); err != nil {
-		t.Fatalf("write go-custom.md: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(packsDir, "content-custom.md"), []byte(sentinel), 0o644); err != nil {
-		t.Fatalf("write content-custom.md: %v", err)
-	}
-
-	opts := &Options{
-		TargetDir: dir,
-		ReadFile:  os.ReadFile,
-		WriteFile: os.WriteFile,
-	}
-
-	result := ensureCLAUDEmd(opts, "go")
-	if result.action == "failed" {
-		t.Fatalf("ensureCLAUDEmd failed: %s", result.detail)
-	}
-
-	data, err := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
-	}
-	content := string(data)
-
-	if !strings.Contains(content, "go-custom.md") {
-		t.Error("go-custom.md should appear in CLAUDE.md (populated)")
-	}
-	if strings.Contains(content, "default-custom.md") {
-		t.Error("default-custom.md should not appear in CLAUDE.md (empty)")
 	}
 }
 
@@ -6573,10 +6128,10 @@ func TestInitSubTools_SimpleToolFails_ShowsError(t *testing.T) {
 	dir := t.TempDir()
 	rec := &scaffoldCmdRecorder{
 		errors: map[string]error{
-			"specify init": fmt.Errorf("exit status 1"),
+			"specify init --here --integration opencode --offline": fmt.Errorf("exit status 1"),
 		},
 		outputs: map[string]string{
-			"specify init": "Error: .specify already exists\nUse --force to overwrite.\n",
+			"specify init --here --integration opencode --offline": "Error: .specify already exists\nUse --force to overwrite.\n",
 		},
 	}
 
@@ -6706,5 +6261,279 @@ func TestPrintSummary_SuccessUnchanged(t *testing.T) {
 	}
 	if !strings.Contains(output, "opencode.json created") {
 		t.Errorf("expected 'opencode.json created' in output")
+	}
+}
+
+// TestGuardrailTemplates_CommandSpecificContent is a regression guard
+// for issue #256: the uf.init.md Step 6 guardrail templates must
+// contain command-specific content for implement, constitution, and
+// taskstoissues commands. Previously all 9 commands shared identical
+// guardrails that were factually wrong for these 3 commands.
+func TestGuardrailTemplates_CommandSpecificContent(t *testing.T) {
+	content, err := assetContent("opencode/commands/uf.init.md")
+	if err != nil {
+		t.Fatalf("read embedded uf.init.md: %v", err)
+	}
+	text := string(content)
+
+	// Extract each guardrail template block by its heading label.
+	// The blocks are fenced in ```markdown ... ``` and preceded by
+	// a bold label like **Implement guardrails block**.
+	type guardrailBlock struct {
+		label        string
+		mustContain  []string
+		mustNotContain []string
+	}
+
+	blocks := []guardrailBlock{
+		{
+			label: "Implement guardrails block",
+			mustContain: []string{
+				"writes source code",
+			},
+			mustNotContain: []string{
+				"NEVER modify source code",
+				"FEATURE_DIR",
+				"FEATURE_SPEC",
+			},
+		},
+		{
+			label: "Constitution guardrails block",
+			mustContain: []string{
+				".specify/memory/",
+				".specify/templates/",
+			},
+			mustNotContain: []string{
+				"NEVER modify source code",
+				"FEATURE_DIR",
+				"FEATURE_SPEC",
+			},
+		},
+		{
+			label: "Taskstoissues guardrails block",
+			mustContain: []string{
+				"GitHub issues via",
+				"the current Git remote",
+			},
+			mustNotContain: []string{
+				"NEVER modify source code",
+				"files this command may write",
+				"FEATURE_DIR",
+				"FEATURE_SPEC",
+			},
+		},
+		{
+			label: "Spec-phase guardrails block",
+			mustContain: []string{
+				"NEVER modify source code",
+				"FEATURE_DIR",
+				"defeats the purpose",
+			},
+			mustNotContain: nil, // spec-phase guardrails are the baseline
+		},
+	}
+
+	for _, b := range blocks {
+		t.Run(b.label, func(t *testing.T) {
+			// Find the block: look for the label, then extract the
+			// next ```markdown ... ``` fenced block after it.
+			idx := strings.Index(text, b.label)
+			if idx < 0 {
+				t.Fatalf("guardrail block label %q not found in uf.init.md", b.label)
+			}
+
+			remainder := text[idx:]
+			fenceStart := strings.Index(remainder, "```markdown")
+			if fenceStart < 0 {
+				t.Fatalf("no ```markdown fence found after %q", b.label)
+			}
+			fenceEnd := strings.Index(remainder[fenceStart+len("```markdown"):], "```")
+			if fenceEnd < 0 {
+				t.Fatalf("no closing ``` found for %q block", b.label)
+			}
+			blockContent := remainder[fenceStart : fenceStart+len("```markdown")+fenceEnd+len("```")]
+
+			for _, pattern := range b.mustContain {
+				if !strings.Contains(blockContent, pattern) {
+					t.Errorf("%s: MUST contain %q but does not\nBlock content:\n%s",
+						b.label, pattern, blockContent)
+				}
+			}
+			for _, pattern := range b.mustNotContain {
+				if strings.Contains(blockContent, pattern) {
+					t.Errorf("%s: MUST NOT contain %q but does\nBlock content:\n%s",
+						b.label, pattern, blockContent)
+				}
+			}
+		})
+	}
+}
+
+func TestCleanupRenamedCommands_HappyPath(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create a subset of old-name command files.
+	cmdDir := filepath.Join(dir, ".opencode", "commands")
+	if err := os.MkdirAll(cmdDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	oldFiles := []string{"address-feedback.md", "review-council.md"}
+	for _, f := range oldFiles {
+		if err := os.WriteFile(filepath.Join(cmdDir, f), []byte("old"), 0o644); err != nil {
+			t.Fatalf("write %s: %v", f, err)
+		}
+	}
+
+	var buf bytes.Buffer
+	removed := cleanupRenamedCommands(&buf, dir)
+
+	// Verify files are removed from disk.
+	for _, f := range oldFiles {
+		p := filepath.Join(cmdDir, f)
+		if _, err := os.Stat(p); err == nil {
+			t.Errorf("expected %s to be removed, but it still exists", f)
+		}
+	}
+
+	// Verify returned paths use mapped output format.
+	if len(removed) != 2 {
+		t.Fatalf("expected 2 removed paths, got %d", len(removed))
+	}
+	for _, r := range removed {
+		if !strings.HasPrefix(r, ".opencode/commands/") {
+			t.Errorf("removed path %q does not have expected prefix .opencode/commands/", r)
+		}
+	}
+
+	// No warnings should have been emitted.
+	if buf.Len() != 0 {
+		t.Errorf("expected no warnings, got: %s", buf.String())
+	}
+}
+
+func TestCleanupRenamedCommands_NoOldFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	var buf bytes.Buffer
+	removed := cleanupRenamedCommands(&buf, dir)
+
+	if len(removed) != 0 {
+		t.Errorf("expected 0 removed paths, got %d", len(removed))
+	}
+	if buf.Len() != 0 {
+		t.Errorf("expected no warnings, got: %s", buf.String())
+	}
+}
+
+func TestCleanupRenamedCommands_NonWritableDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("read-only file test not reliable on Windows")
+	}
+
+	dir := t.TempDir()
+	cmdDir := filepath.Join(dir, ".opencode", "commands")
+	if err := os.MkdirAll(cmdDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	// Create two old-name files.
+	removable := "address-feedback.md"
+	readonly := "review-council.md"
+	for _, f := range []string{removable, readonly} {
+		if err := os.WriteFile(filepath.Join(cmdDir, f), []byte("old"), 0o644); err != nil {
+			t.Fatalf("write %s: %v", f, err)
+		}
+	}
+
+	// Make a file read-only, then make the directory non-writable so
+	// os.Remove fails for ALL files (total failure, not partial).
+	readonlyPath := filepath.Join(cmdDir, readonly)
+	if err := os.Chmod(readonlyPath, 0o444); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	if err := os.Chmod(cmdDir, 0o555); err != nil {
+		t.Fatalf("chmod dir: %v", err)
+	}
+	t.Cleanup(func() {
+		// Restore permissions so t.TempDir() cleanup succeeds.
+		_ = os.Chmod(cmdDir, 0o755)
+		_ = os.Chmod(readonlyPath, 0o644)
+	})
+
+	var buf bytes.Buffer
+	removed := cleanupRenamedCommands(&buf, dir)
+
+	// No files should be removable since the directory is non-writable.
+	if len(removed) != 0 {
+		t.Errorf("expected 0 removed (dir is non-writable), got %d: %v", len(removed), removed)
+	}
+
+	// Warnings should have been emitted for both files.
+	warnings := buf.String()
+	if !strings.Contains(warnings, "could not remove") {
+		t.Errorf("expected warning about removal failure, got: %s", warnings)
+	}
+}
+
+func TestWarnStaleCommandRefs_StaleRef(t *testing.T) {
+	dir := t.TempDir()
+	agentDir := filepath.Join(dir, ".opencode", "agents")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	// Write an agent file containing a stale reference.
+	content := "Run /review-council to review the code.\n"
+	if err := os.WriteFile(filepath.Join(agentDir, "cobalt-crush-dev.md"), []byte(content), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var buf bytes.Buffer
+	warnStaleCommandRefs(&buf, dir)
+
+	output := buf.String()
+	if !strings.Contains(output, "Stale command references") {
+		t.Errorf("expected stale reference warning header, got: %s", output)
+	}
+	if !strings.Contains(output, "cobalt-crush-dev.md") {
+		t.Errorf("expected agent file name in warning, got: %s", output)
+	}
+	if !strings.Contains(output, "/review-council") {
+		t.Errorf("expected old ref /review-council in warning, got: %s", output)
+	}
+	if !strings.Contains(output, "/uf.review-council") {
+		t.Errorf("expected new ref /uf.review-council in warning, got: %s", output)
+	}
+}
+
+func TestWarnStaleCommandRefs_NoStaleRefs(t *testing.T) {
+	dir := t.TempDir()
+	agentDir := filepath.Join(dir, ".opencode", "agents")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	// Write an agent file with only current references.
+	content := "Run /uf.review-council to review the code.\n"
+	if err := os.WriteFile(filepath.Join(agentDir, "cobalt-crush-dev.md"), []byte(content), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var buf bytes.Buffer
+	warnStaleCommandRefs(&buf, dir)
+
+	if buf.Len() != 0 {
+		t.Errorf("expected no warning for current refs, got: %s", buf.String())
+	}
+}
+
+func TestWarnStaleCommandRefs_NoAgentFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	var buf bytes.Buffer
+	warnStaleCommandRefs(&buf, dir)
+
+	if buf.Len() != 0 {
+		t.Errorf("expected no output when no agent dir exists, got: %s", buf.String())
 	}
 }

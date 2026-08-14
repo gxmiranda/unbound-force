@@ -996,8 +996,6 @@ func TestDoctorRun_AllPass(t *testing.T) {
 	createFile(t, dir, ".opencode/uf/packs/go.md", "# Go")
 	createFile(t, dir, ".specify/config.yaml", "# config")
 	createFile(t, dir, "AGENTS.md", completeAGENTSmd())
-	createFile(t, dir, "CLAUDE.md", "# Claude\n@AGENTS.md\n")
-	createFile(t, dir, ".cursorrules", "Read AGENTS.md for conventions.\n")
 	createFile(t, dir, "opencode.json", `{"mcp":{"replicator":{"type":"local","command":["replicator","serve"],"enabled":true}}}`)
 	if err := os.MkdirAll(filepath.Join(dir, ".uf", "replicator"), 0755); err != nil {
 		t.Fatalf("mkdir .uf/replicator: %v", err)
@@ -3562,107 +3560,12 @@ func TestCheckAgentContext_SpecFrameworkSkipped(t *testing.T) {
 	}
 }
 
-func TestCheckAgentContext_BridgeCLAUDEmd(t *testing.T) {
-	t.Run("imports AGENTS.md", func(t *testing.T) {
-		dir := t.TempDir()
-		createFile(t, dir, "AGENTS.md", "## Overview\n")
-		createFile(t, dir, "CLAUDE.md", "# Claude\n@AGENTS.md\n")
-
-		opts := &Options{TargetDir: dir, ReadFile: os.ReadFile}
-		group := checkAgentContext(opts)
-
-		results := make(map[string]CheckResult)
-		for _, r := range group.Results {
-			results[r.Name] = r
-		}
-
-		if r := results["Bridge: CLAUDE.md"]; r.Severity != Pass {
-			t.Errorf("severity = %v, want Pass", r.Severity)
-		}
-	})
-
-	t.Run("missing", func(t *testing.T) {
-		dir := t.TempDir()
-		createFile(t, dir, "AGENTS.md", "## Overview\n")
-
-		opts := &Options{TargetDir: dir, ReadFile: os.ReadFile}
-		group := checkAgentContext(opts)
-
-		results := make(map[string]CheckResult)
-		for _, r := range group.Results {
-			results[r.Name] = r
-		}
-
-		if r := results["Bridge: CLAUDE.md"]; r.Severity != Warn {
-			t.Errorf("severity = %v, want Warn", r.Severity)
-		}
-	})
-
-	t.Run("exists but no reference", func(t *testing.T) {
-		dir := t.TempDir()
-		createFile(t, dir, "AGENTS.md", "## Overview\n")
-		createFile(t, dir, "CLAUDE.md", "# Claude\nSome content.\n")
-
-		opts := &Options{TargetDir: dir, ReadFile: os.ReadFile}
-		group := checkAgentContext(opts)
-
-		results := make(map[string]CheckResult)
-		for _, r := range group.Results {
-			results[r.Name] = r
-		}
-
-		if r := results["Bridge: CLAUDE.md"]; r.Severity != Warn {
-			t.Errorf("severity = %v, want Warn", r.Severity)
-		}
-	})
-}
-
-func TestCheckAgentContext_BridgeCursorrules(t *testing.T) {
-	t.Run("references AGENTS.md", func(t *testing.T) {
-		dir := t.TempDir()
-		createFile(t, dir, "AGENTS.md", "## Overview\n")
-		createFile(t, dir, ".cursorrules", "Read AGENTS.md for conventions.\n")
-
-		opts := &Options{TargetDir: dir, ReadFile: os.ReadFile}
-		group := checkAgentContext(opts)
-
-		results := make(map[string]CheckResult)
-		for _, r := range group.Results {
-			results[r.Name] = r
-		}
-
-		if r := results["Bridge: .cursorrules"]; r.Severity != Pass {
-			t.Errorf("severity = %v, want Pass", r.Severity)
-		}
-	})
-
-	t.Run("missing", func(t *testing.T) {
-		dir := t.TempDir()
-		createFile(t, dir, "AGENTS.md", "## Overview\n")
-
-		opts := &Options{TargetDir: dir, ReadFile: os.ReadFile}
-		group := checkAgentContext(opts)
-
-		results := make(map[string]CheckResult)
-		for _, r := range group.Results {
-			results[r.Name] = r
-		}
-
-		if r := results["Bridge: .cursorrules"]; r.Severity != Warn {
-			t.Errorf("severity = %v, want Warn", r.Severity)
-		}
-	})
-}
-
 func TestCheckAgentContext_FullPass(t *testing.T) {
 	dir := t.TempDir()
 	createFile(t, dir, "AGENTS.md", completeAGENTSmd())
 	createFile(t, dir, ".specify/memory/constitution.md", "# Constitution\n")
 	createFile(t, dir, "specs/001-feature/spec.md", "# Spec")
 	createFile(t, dir, "openspec/config.yaml", "schema: unbound-force")
-	createFile(t, dir, "CLAUDE.md", "# Claude\n@AGENTS.md\n")
-	createFile(t, dir, ".cursorrules", "Read AGENTS.md for conventions.\n")
-
 	opts := &Options{
 		TargetDir: dir,
 		ReadFile:  os.ReadFile,
@@ -3674,7 +3577,7 @@ func TestCheckAgentContext_FullPass(t *testing.T) {
 		t.Errorf("group name = %q, want Agent Context", group.Name)
 	}
 
-	// All 13 checks should be present and passing.
+	// All 11 checks should be present and passing.
 	for _, r := range group.Results {
 		if r.Severity != Pass {
 			t.Errorf("check %q: severity = %v, want Pass (message: %s)",
@@ -3684,12 +3587,31 @@ func TestCheckAgentContext_FullPass(t *testing.T) {
 
 	// Verify expected check count: 1 (existence) + 5 (tier1) +
 	// 1 (code blocks) + 1 (line count) + 1 (constitution) +
-	// 1 (spec framework) + 2 (bridges) + 1 (branch protection)
-	// = 13.
-	if len(group.Results) != 13 {
-		t.Errorf("expected 13 check results, got %d", len(group.Results))
+	// 1 (spec framework) + 1 (branch protection) = 11.
+	if len(group.Results) != 11 {
+		t.Errorf("expected 11 check results, got %d", len(group.Results))
 		for _, r := range group.Results {
 			t.Logf("  %s: %v — %s", r.Name, r.Severity, r.Message)
+		}
+	}
+}
+
+func TestCheckAgentContext_NoBridgeFileResults(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "AGENTS.md", "## Overview\n")
+	// Create bridge files to ensure they don't trigger checks
+	// even when present.
+	createFile(t, dir, "CLAUDE.md", "# Claude\n@AGENTS.md\n")
+	createFile(t, dir, ".cursorrules", "Read AGENTS.md for conventions.\n")
+
+	opts := &Options{TargetDir: dir, ReadFile: os.ReadFile}
+	group := checkAgentContext(opts)
+
+	for _, r := range group.Results {
+		if strings.Contains(r.Name, "Bridge") ||
+			strings.Contains(r.Name, "CLAUDE") ||
+			strings.Contains(r.Name, "cursorrules") {
+			t.Errorf("checkAgentContext must not produce bridge file result %q after removal", r.Name)
 		}
 	}
 }
