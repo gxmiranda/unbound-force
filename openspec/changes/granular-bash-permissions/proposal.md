@@ -42,7 +42,7 @@ GitHub mutations and git write operations behind `"ask"`.
   prompts for `gh issue create`, `gh issue comment`,
   `gh issue edit`, `gh issue close`, `gh pr create`,
   `gh pr merge`, `gh pr comment`, `gh pr edit`,
-  `gh pr close`, `gh api`, `git push`, `git commit`,
+  `gh pr close`, `gh pr review`, `gh api`, `git push`, `git commit`,
   and `rm` commands. Read-only commands (`gh issue view`,
   `gh issue list`, `gh pr view`, `gh pr list`,
   `git status`, `git log`, `git diff`, `go test`, etc.)

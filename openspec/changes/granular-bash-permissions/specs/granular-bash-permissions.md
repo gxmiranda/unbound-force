@@ -17,6 +17,7 @@ The following command patterns MUST be gated with `"ask"`:
 - `gh pr close*`
 - `gh pr comment*`
 - `gh pr edit*`
+- `gh pr review*`
 - `gh api*`
 - `git push*`
 - `git commit*`

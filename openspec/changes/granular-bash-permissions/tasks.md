@@ -16,7 +16,7 @@
   granular bash rules. Gate mutation commands (`gh issue
   create*`, `gh issue edit*`, `gh issue close*`,
   `gh issue comment*`, `gh pr create*`, `gh pr merge*`,
-  `gh pr close*`, `gh pr comment*`, `gh pr edit*`,
+  `gh pr close*`, `gh pr comment*`, `gh pr edit*`, `gh pr review*`,
   `gh api*`, `git push*`, `git commit*`, `rm *`) behind
   `"ask"`. Set catch-all `"*"` to `"allow"`.
   File: `opencode.json`

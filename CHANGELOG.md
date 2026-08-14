@@ -24,9 +24,9 @@ Each entry follows the format: `- <change-name>: <summary>`.
 
 ### Added
 - granular-bash-permissions: Runtime-enforced bash permission
-  rules in `opencode.json` gating 13 GitHub-mutating, git-write,
+  rules in `opencode.json` gating 14 GitHub-mutating, git-write,
   and destructive commands (`gh issue create/edit/close/comment`,
-  `gh pr create/merge/close/comment/edit`, `gh api`, `git push`,
+  `gh pr create/merge/close/comment/edit/review`, `gh api`, `git push`,
   `git commit`, `rm`) behind `"ask"` approval prompts. Read-only
   commands remain auto-allowed via `"*": "allow"` catch-all.
   Hardened `divisor-curator.md` with granular frontmatter

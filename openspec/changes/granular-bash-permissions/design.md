@@ -22,7 +22,7 @@ prompts while allowing read-only operations.
 
 ### Goals
 - Gate `gh issue create/edit/close/comment` behind `"ask"`
-- Gate `gh pr create/merge/close/comment/edit` behind `"ask"`
+- Gate `gh pr create/merge/close/comment/edit/review` behind `"ask"`
 - Gate `gh api` behind `"ask"` (arbitrary API calls)
 - Gate `git push`, `git commit` behind `"ask"`
 - Gate `rm` behind `"ask"`

@@ -12,6 +12,7 @@
       "gh pr close*": "ask",
       "gh pr comment*": "ask",
       "gh pr edit*": "ask",
+      "gh pr review*": "ask",
       "gh api*": "ask",
       "git push*": "ask",
       "git commit*": "ask",
