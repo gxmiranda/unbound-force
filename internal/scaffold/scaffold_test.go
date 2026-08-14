@@ -61,6 +61,12 @@ func TestEmbeddedAssets_MatchSource(t *testing.T) {
 		if strings.HasPrefix(relPath, "devcontainer/") {
 			continue
 		}
+		// specify/ assets are starter templates, not mirrors of
+		// the org's .specify/ files. The embedded starter
+		// constitution is the source of truth.
+		if strings.HasPrefix(relPath, "specify/") {
+			continue
+		}
 
 		// Map asset path to canonical source path
 		srcRel := mapAssetToSource(relPath)
@@ -183,6 +189,8 @@ var expectedAssetPaths = []string{
 	"opencode/skills/pre-flight/SKILL.md",
 	"opencode/skills/review-context/SKILL.md",
 	"opencode/skills/speckit-workflow/SKILL.md",
+	// Specify — starter constitution (1)
+	"specify/memory/constitution.md",
 }
 
 // nonDeployedAssetPaths lists embedded assets that are NOT
@@ -256,6 +264,7 @@ func TestRun_CreatesFiles(t *testing.T) {
 		".opencode/commands",
 		".opencode/agents",
 		".opencode/uf/packs",
+		".specify/memory",
 		"openspec/specs",
 		"openspec/changes",
 	}
@@ -274,6 +283,185 @@ func TestRun_CreatesFiles(t *testing.T) {
 	// Verify created file count matches expected assets
 	if len(result.Created) != len(expectedAssetPaths) {
 		t.Errorf("expected %d created files, got %d", len(expectedAssetPaths), len(result.Created))
+	}
+}
+
+func TestRun_ConstitutionScaffolded(t *testing.T) {
+	dir := t.TempDir()
+	var buf bytes.Buffer
+
+	result, err := Run(Options{
+		TargetDir: dir,
+		Version:   "1.0.0-test",
+		Stdout:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("Run() error: %v", err)
+	}
+
+	// Constitution should be in Created list.
+	constitutionOut := ".specify/memory/constitution.md"
+	found := false
+	for _, f := range result.Created {
+		if f == constitutionOut {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected %s in result.Created", constitutionOut)
+	}
+
+	// Read the scaffolded constitution.
+	content, err := os.ReadFile(filepath.Join(dir, constitutionOut))
+	if err != nil {
+		t.Fatalf("read constitution: %v", err)
+	}
+	text := string(content)
+
+	// Must contain all five principle headings.
+	for _, heading := range []string{
+		"### I. Autonomous Collaboration",
+		"### II. Composability First",
+		"### III. Observable Quality",
+		"### IV. Testability",
+		"### V. Security by Default",
+	} {
+		if !strings.Contains(text, heading) {
+			t.Errorf("constitution missing heading %q", heading)
+		}
+	}
+
+	// Must NOT contain [PLACEHOLDER] tokens (FR-001).
+	if strings.Contains(text, "[PLACEHOLDER]") {
+		t.Error("constitution contains [PLACEHOLDER] tokens")
+	}
+
+	// Must contain version marker (FR-001 Scenario 2).
+	if !strings.Contains(text, "<!-- scaffolded by uf v") {
+		t.Error("constitution missing version marker")
+	}
+}
+
+func TestRun_ConstitutionPreservedOnRerun(t *testing.T) {
+	dir := t.TempDir()
+	var buf bytes.Buffer
+
+	// First run creates constitution.
+	_, err := Run(Options{
+		TargetDir: dir,
+		Version:   "1.0.0",
+		Stdout:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("first Run() error: %v", err)
+	}
+
+	// User customizes the constitution.
+	constitutionPath := filepath.Join(dir, ".specify", "memory", "constitution.md")
+	customContent := []byte("# My Custom Constitution\n\nCustomized by user.\n")
+	if err := os.WriteFile(constitutionPath, customContent, 0o644); err != nil {
+		t.Fatalf("write custom constitution: %v", err)
+	}
+
+	// Re-run without --force: constitution should be preserved.
+	buf.Reset()
+	result, err := Run(Options{
+		TargetDir: dir,
+		Version:   "1.0.0",
+		Stdout:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("second Run() error: %v", err)
+	}
+
+	// Constitution should be in Skipped, not Created or Overwritten.
+	constitutionOut := ".specify/memory/constitution.md"
+	for _, f := range result.Created {
+		if f == constitutionOut {
+			t.Errorf("expected constitution to be skipped, but found in Created")
+		}
+	}
+	for _, f := range result.Overwritten {
+		if f == constitutionOut {
+			t.Errorf("expected constitution to be skipped, but found in Overwritten")
+		}
+	}
+	foundSkipped := false
+	for _, f := range result.Skipped {
+		if f == constitutionOut {
+			foundSkipped = true
+			break
+		}
+	}
+	if !foundSkipped {
+		t.Errorf("expected %s in result.Skipped", constitutionOut)
+	}
+
+	// Verify user content is preserved.
+	got, err := os.ReadFile(constitutionPath)
+	if err != nil {
+		t.Fatalf("read constitution after re-run: %v", err)
+	}
+	if !bytes.Equal(got, customContent) {
+		t.Errorf("constitution content was modified on re-run")
+	}
+}
+
+func TestRun_ConstitutionOverwrittenWithForce(t *testing.T) {
+	dir := t.TempDir()
+	var buf bytes.Buffer
+
+	// First run creates constitution.
+	_, err := Run(Options{
+		TargetDir: dir,
+		Version:   "1.0.0",
+		Stdout:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("first Run() error: %v", err)
+	}
+
+	// User customizes the constitution.
+	constitutionPath := filepath.Join(dir, ".specify", "memory", "constitution.md")
+	if err := os.WriteFile(constitutionPath, []byte("user content"), 0o644); err != nil {
+		t.Fatalf("write custom constitution: %v", err)
+	}
+
+	// Re-run with --force: constitution should be overwritten.
+	buf.Reset()
+	result, err := Run(Options{
+		TargetDir: dir,
+		Force:     true,
+		Version:   "1.0.0",
+		Stdout:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("force Run() error: %v", err)
+	}
+
+	constitutionOut := ".specify/memory/constitution.md"
+	foundOverwritten := false
+	for _, f := range result.Overwritten {
+		if f == constitutionOut {
+			foundOverwritten = true
+			break
+		}
+	}
+	if !foundOverwritten {
+		t.Errorf("expected %s in result.Overwritten", constitutionOut)
+	}
+
+	// Content should be the starter constitution, not "user content".
+	got, err := os.ReadFile(constitutionPath)
+	if err != nil {
+		t.Fatalf("read constitution after force: %v", err)
+	}
+	if strings.Contains(string(got), "user content") {
+		t.Error("constitution was not overwritten by --force")
+	}
+	if !strings.Contains(string(got), "### I. Autonomous Collaboration") {
+		t.Error("constitution missing principle heading after --force overwrite")
 	}
 }
 
@@ -605,6 +793,8 @@ func TestIsToolOwned(t *testing.T) {
 		{"opencode/agents/cobalt-crush-dev.md", false},
 		// User-owned: other
 		{"opencode/agents/constitution-check.md", false},
+		// User-owned: specify/ assets (starter constitution)
+		{"specify/memory/constitution.md", false},
 	}
 
 	for _, tt := range tests {
@@ -1146,6 +1336,8 @@ func TestMapAssetPath_Prefixes(t *testing.T) {
 	}{
 		{"opencode/commands/speckit.specify.md", ".opencode/commands/speckit.specify.md"},
 		{"openspec/schemas/unbound-force/schema.yaml", "openspec/schemas/unbound-force/schema.yaml"},
+		// specify/ maps to .specify/ (dot prefix)
+		{"specify/memory/constitution.md", ".specify/memory/constitution.md"},
 		// Unknown prefix passes through unchanged (default branch)
 		{"scripts/validate.sh", "scripts/validate.sh"},
 	}
@@ -1357,6 +1549,17 @@ func TestRun_DivisorSubset(t *testing.T) {
 	}
 	if !foundGoPack {
 		t.Error("expected Go convention pack to be deployed")
+	}
+
+	// Verify no specify/ assets (constitution is not a Divisor asset)
+	for _, f := range result.Created {
+		if strings.HasPrefix(f, ".specify/") {
+			t.Errorf("DivisorOnly should not create %s", f)
+		}
+	}
+	specifyConst := filepath.Join(dir, ".specify", "memory", "constitution.md")
+	if _, err := os.Stat(specifyConst); !os.IsNotExist(err) {
+		t.Error("DivisorOnly should not create .specify/memory/constitution.md on disk")
 	}
 
 	// Verify no openspec empty dirs
@@ -2209,6 +2412,13 @@ func TestPrintSummary_NextSteps(t *testing.T) {
 		if !strings.Contains(output, "/speckit.constitution") {
 			t.Errorf("expected constitution hint")
 		}
+		// Hint should say "customize" not "create" (MR-001).
+		if !strings.Contains(output, "customize your project constitution") {
+			t.Errorf("expected 'customize your project constitution' in hint")
+		}
+		if strings.Contains(output, "create your project constitution") {
+			t.Errorf("hint should NOT contain 'create your project constitution'")
+		}
 		if !strings.Contains(output, "uf doctor") {
 			t.Errorf("expected doctor hint")
 		}
@@ -2227,6 +2437,13 @@ func TestPrintSummary_NextSteps(t *testing.T) {
 		// Should suggest uf setup as first step.
 		if !strings.Contains(output, "uf setup") {
 			t.Errorf("expected 'uf setup' hint when no sub-tool results, got:\n%s", output)
+		}
+		// Hint should say "customize" not "create" (MR-001).
+		if !strings.Contains(output, "customize your project constitution") {
+			t.Errorf("expected 'customize your project constitution' in hint")
+		}
+		if strings.Contains(output, "create your project constitution") {
+			t.Errorf("hint should NOT contain 'create your project constitution'")
 		}
 	})
 

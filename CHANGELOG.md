@@ -35,6 +35,15 @@ Each entry follows the format: `- <change-name>: <summary>`.
   Closes: #253)
 
 ### Fixed
+- fix-constitution-scaffold: `uf init` now scaffolds a working
+  starter constitution at `.specify/memory/constitution.md`
+  instead of delegating to `specify init` (which fails
+  silently in non-interactive mode). The starter includes
+  all five org principles with generic project language and
+  no `[PLACEHOLDER]` tokens. Post-scaffold hints updated
+  from "create" to "customize".
+  (Spec: openspec/changes/fix-constitution-scaffold/,
+  Fixes: #213)
 - fix-doctor-hints: Replace five hardcoded OpenCode-specific
   `InstallHint` strings in `uf doctor` agent context checks
   with tool-agnostic plain-language remediation instructions.
