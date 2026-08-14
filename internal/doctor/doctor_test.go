@@ -2617,12 +2617,25 @@ func TestDoctorHints_NoBareUnboundReferences(t *testing.T) {
 			if r.InstallHint == "" {
 				continue
 			}
-			// Check for bare "unbound " that is NOT "unbound-force".
 			hint := r.InstallHint
+
+			// Check for bare "unbound " that is NOT "unbound-force" (FR-006).
 			// Remove all "unbound-force" occurrences to isolate bare "unbound ".
 			cleaned := strings.ReplaceAll(hint, "unbound-force", "")
 			if strings.Contains(cleaned, "unbound ") || strings.Contains(cleaned, "unbound\t") {
 				t.Errorf("InstallHint for %q contains bare 'unbound' reference: %q (FR-006 violation)",
+					r.Name, r.InstallHint)
+			}
+
+			// Check for /uf. slash command patterns (tool-specific references).
+			if strings.Contains(hint, "/uf.") {
+				t.Errorf("InstallHint for %q contains /uf. slash command reference: %q",
+					r.Name, r.InstallHint)
+			}
+
+			// Check for OpenCode-specific references.
+			if strings.Contains(hint, "OpenCode") || strings.Contains(hint, "opencode") {
+				t.Errorf("InstallHint for %q contains OpenCode-specific reference: %q",
 					r.Name, r.InstallHint)
 			}
 		}
@@ -3252,8 +3265,9 @@ func TestCheckAgentContext_NoFile(t *testing.T) {
 	if r.Severity != Fail {
 		t.Errorf("severity = %v, want Fail", r.Severity)
 	}
-	if r.InstallHint != "Run: /uf.agent-brief in OpenCode" {
-		t.Errorf("install hint = %q, want 'Run: /uf.agent-brief in OpenCode'", r.InstallHint)
+	wantHint := "Create an AGENTS.md file in your project root describing the project for AI agents"
+	if r.InstallHint != wantHint {
+		t.Errorf("install hint = %q, want %q", r.InstallHint, wantHint)
 	}
 }
 
@@ -3294,34 +3308,40 @@ func TestCheckAgentContext_AllTier1Present(t *testing.T) {
 
 func TestCheckAgentContext_MissingTier1Section(t *testing.T) {
 	tests := []struct {
-		name    string
-		content string
-		missing string
+		name        string
+		content     string
+		missing     string
+		sectionName string // canonical name from agentContextTier1Sections
 	}{
 		{
-			name:    "missing overview",
-			content: "## Build\n## Project Structure\n## Code Conventions\n## Active Technologies\n",
-			missing: "Tier 1: Project Overview",
+			name:        "missing overview",
+			content:     "## Build\n## Project Structure\n## Code Conventions\n## Active Technologies\n",
+			missing:     "Tier 1: Project Overview",
+			sectionName: "Project Overview",
 		},
 		{
-			name:    "missing build",
-			content: "## Project Overview\n## Project Structure\n## Code Conventions\n## Active Technologies\n",
-			missing: "Tier 1: Build Commands",
+			name:        "missing build",
+			content:     "## Project Overview\n## Project Structure\n## Code Conventions\n## Active Technologies\n",
+			missing:     "Tier 1: Build Commands",
+			sectionName: "Build Commands",
 		},
 		{
-			name:    "missing structure",
-			content: "## Project Overview\n## Build\n## Code Conventions\n## Active Technologies\n",
-			missing: "Tier 1: Project Structure",
+			name:        "missing structure",
+			content:     "## Project Overview\n## Build\n## Code Conventions\n## Active Technologies\n",
+			missing:     "Tier 1: Project Structure",
+			sectionName: "Project Structure",
 		},
 		{
-			name:    "missing conventions",
-			content: "## Project Overview\n## Build\n## Project Structure\n## Active Technologies\n",
-			missing: "Tier 1: Code Conventions",
+			name:        "missing conventions",
+			content:     "## Project Overview\n## Build\n## Project Structure\n## Active Technologies\n",
+			missing:     "Tier 1: Code Conventions",
+			sectionName: "Code Conventions",
 		},
 		{
-			name:    "missing tech stack",
-			content: "## Project Overview\n## Build\n## Project Structure\n## Code Conventions\n",
-			missing: "Tier 1: Technology Stack",
+			name:        "missing tech stack",
+			content:     "## Project Overview\n## Build\n## Project Structure\n## Code Conventions\n",
+			missing:     "Tier 1: Technology Stack",
+			sectionName: "Technology Stack",
 		},
 	}
 
@@ -3348,6 +3368,10 @@ func TestCheckAgentContext_MissingTier1Section(t *testing.T) {
 			}
 			if r.Severity != Fail {
 				t.Errorf("%s severity = %v, want Fail", tt.missing, r.Severity)
+			}
+			wantHint := fmt.Sprintf("Add a '%s' section to AGENTS.md", tt.sectionName)
+			if r.InstallHint != wantHint {
+				t.Errorf("%s install hint = %q, want %q", tt.missing, r.InstallHint, wantHint)
 			}
 		})
 	}
@@ -3431,8 +3455,13 @@ func TestCheckAgentContext_LineCount(t *testing.T) {
 			results[r.Name] = r
 		}
 
-		if r := results["Line count"]; r.Severity != Warn {
+		r := results["Line count"]
+		if r.Severity != Warn {
 			t.Errorf("severity = %v, want Warn for 350 lines", r.Severity)
+		}
+		wantHint := "Condense AGENTS.md — current line count exceeds threshold"
+		if r.InstallHint != wantHint {
+			t.Errorf("install hint = %q, want %q", r.InstallHint, wantHint)
 		}
 	})
 }
@@ -3479,6 +3508,10 @@ func TestCheckAgentContext_ConstitutionReference(t *testing.T) {
 		}
 		if r.Severity != Warn {
 			t.Errorf("severity = %v, want Warn", r.Severity)
+		}
+		wantHint := "Add a constitution reference to AGENTS.md (e.g., Instructions from: .specify/memory/constitution.md)"
+		if r.InstallHint != wantHint {
+			t.Errorf("install hint = %q, want %q", r.InstallHint, wantHint)
 		}
 	})
 }
@@ -3542,6 +3575,10 @@ func TestCheckAgentContext_SpecFrameworkReference(t *testing.T) {
 		if r.Severity != Warn {
 			t.Errorf("severity = %v, want Warn", r.Severity)
 		}
+		wantHint := "Add a Specification Workflow section to AGENTS.md describing your spec framework"
+		if r.InstallHint != wantHint {
+			t.Errorf("install hint = %q, want %q", r.InstallHint, wantHint)
+		}
 	})
 }
 
@@ -3556,6 +3593,63 @@ func TestCheckAgentContext_SpecFrameworkSkipped(t *testing.T) {
 	for _, r := range group.Results {
 		if r.Name == "Spec framework described" {
 			t.Error("Spec framework check should be omitted when no specs/ or openspec/ exist")
+		}
+	}
+}
+
+// TestCheckAgentContext_ProjectAGENTSmdHasAllTier1Sections is a
+// drift-detection test that reads the project's own AGENTS.md and
+// asserts all five Tier 1 section patterns match. This prevents
+// silent drift between the doctor's expectations and the actual
+// project structure.
+func TestCheckAgentContext_ProjectAGENTSmdHasAllTier1Sections(t *testing.T) {
+	// Walk up from the test file directory to find the project root
+	// (directory containing go.mod).
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("os.Getwd: %v", err)
+	}
+	projectRoot := ""
+	for d := dir; ; d = filepath.Dir(d) {
+		if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
+			projectRoot = d
+			break
+		}
+		parent := filepath.Dir(d)
+		if parent == d {
+			break
+		}
+	}
+	if projectRoot == "" {
+		t.Skip("could not locate project root (no go.mod found)")
+	}
+
+	agentsMdPath := filepath.Join(projectRoot, "AGENTS.md")
+	if _, err := os.Stat(agentsMdPath); err != nil {
+		t.Skip("AGENTS.md not found at project root")
+	}
+
+	opts := &Options{
+		TargetDir: projectRoot,
+		ReadFile:  os.ReadFile,
+	}
+
+	group := checkAgentContext(opts)
+
+	results := make(map[string]CheckResult)
+	for _, r := range group.Results {
+		results[r.Name] = r
+	}
+
+	for _, sec := range agentContextTier1Sections {
+		checkName := "Tier 1: " + sec.name
+		r, ok := results[checkName]
+		if !ok {
+			t.Errorf("missing check result for %q", checkName)
+			continue
+		}
+		if r.Severity != Pass {
+			t.Errorf("%s: severity = %v, want Pass — project AGENTS.md is missing this section", checkName, r.Severity)
 		}
 	}
 }
