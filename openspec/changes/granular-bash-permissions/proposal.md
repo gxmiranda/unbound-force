@@ -118,3 +118,16 @@ The permission configuration can be tested by verifying
 the JSON structure in `opencode.json`. Runtime behavior
 can be validated by running commands and confirming
 approval prompts appear for gated operations.
+
+### V. Security by Default
+
+**Assessment**: PASS
+
+This change directly implements Principle V's "least
+privilege" requirement by gating mutation commands at the
+OpenCode runtime level. The `"ask"` action ensures agents
+cannot perform file deletions, git pushes, or GitHub
+mutations without human approval. No new dependencies are
+introduced (supply chain integrity N/A). No external input
+paths are added (input validation N/A). File permissions
+are not modified.

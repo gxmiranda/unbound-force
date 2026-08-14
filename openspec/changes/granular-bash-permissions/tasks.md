@@ -12,7 +12,7 @@
 
 ## 1. Add granular bash permissions to opencode.json
 
-- [ ] 1.1 Add `"permission"` block to `opencode.json` with
+- [x] 1.1 Add `"permission"` block to `opencode.json` with
   granular bash rules. Gate mutation commands (`gh issue
   create*`, `gh issue edit*`, `gh issue close*`,
   `gh issue comment*`, `gh pr create*`, `gh pr merge*`,
@@ -23,7 +23,7 @@
 
 ## 2. Harden Curator agent permissions
 
-- [ ] 2.1 [P] Replace `divisor-curator.md` prose-only bash
+- [x] 2.1 [P] Replace `divisor-curator.md` prose-only bash
   restriction with granular frontmatter permissions.
   Set `bash` to object syntax: `"*": "deny"`,
   `"gh issue list*": "allow"`, `"gh issue view*": "allow"`,
@@ -32,21 +32,21 @@
   section to reference the frontmatter.
   File: `.opencode/agents/divisor-curator.md`
 
-- [ ] 2.2 [P] Update scaffold copy of Curator agent with
+- [x] 2.2 [P] Update scaffold copy of Curator agent with
   identical permission changes.
   File: `internal/scaffold/assets/opencode/agents/divisor-curator.md`
 
 ## 3. Verification
 
-- [ ] 3.1 Run drift detection tests to verify live and
+- [x] 3.1 Run drift detection tests to verify live and
   scaffold Curator copies match:
   `go test -race -count=1 ./internal/scaffold/...`
 
-- [ ] 3.2 Verify `opencode.json` is valid JSON and the
+- [x] 3.2 Verify `opencode.json` is valid JSON and the
   `"permission"` block structure matches the OpenCode
   config schema.
 
-- [ ] 3.3 Verify constitution alignment: the change
+- [x] 3.3 Verify constitution alignment: the change
   maintains Autonomous Collaboration (agents propose,
   humans approve), Composability First (project-level
   config, no cross-repo deps), Observable Quality

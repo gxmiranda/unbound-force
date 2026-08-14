@@ -23,6 +23,18 @@ Each entry follows the format: `- <change-name>: <summary>`.
   Fixes: #428)
 
 ### Added
+- granular-bash-permissions: Runtime-enforced bash permission
+  rules in `opencode.json` gating 13 GitHub-mutating, git-write,
+  and destructive commands (`gh issue create/edit/close/comment`,
+  `gh pr create/merge/close/comment/edit`, `gh api`, `git push`,
+  `git commit`, `rm`) behind `"ask"` approval prompts. Read-only
+  commands remain auto-allowed via `"*": "allow"` catch-all.
+  Hardened `divisor-curator.md` with granular frontmatter
+  permissions (default deny) replacing prose-only restrictions.
+  Structural fix for #465 triage runaway where prose-based
+  confirmation gates were lost under context compression.
+  (Spec: openspec/changes/granular-bash-permissions/,
+  Fixes: #465)
 - council-review-action: Reusable composite GitHub Action
   for multi-persona AI code review on PRs; discovers
   Divisor reviewer personas from the repo's

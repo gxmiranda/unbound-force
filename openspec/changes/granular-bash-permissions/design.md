@@ -89,7 +89,9 @@ characters, `?` matches exactly one.
 - `git commit*` covers `git commit` and `git commit -m "msg"`
 
 Use trailing `*` without space to match both bare commands
-and commands with arguments.
+and commands with arguments. Exception: `rm` uses `"rm *"`
+(with space) to avoid false-matching `rmdir` and other
+`rm`-prefixed commands.
 
 ### D4: Curator agent hardening
 
@@ -136,6 +138,12 @@ unlisted commands are allowed by default. Periodic audit
 of the permission block is needed. Accept this trade-off
 over a restrictive `"*": "ask"` default which would cause
 excessive prompts for `ls`, `cat`, `go test`, etc.
+Additionally, `"gh api*": "ask"` gates all `gh api`
+invocations including read-only GET requests (e.g.,
+fetching PR state in `/uf.review-pr`). This is accepted
+because `gh api` can construct arbitrary mutations; the
+DX cost of extra prompts on reads is preferable to
+leaving an unrestricted mutation path.
 
 **[R3] CI override precedence**: `OPENCODE_CONFIG_CONTENT`
 takes precedence over project `opencode.json`. The CI
