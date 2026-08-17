@@ -6,6 +6,18 @@ Each entry follows the format: `- <change-name>: <summary>`.
 ## Unreleased
 
 ### Changed
+- pre-flight-file-scope-filter: Add Phase 2a file-scope
+  filtering to skip tools that have zero in-scope files
+  in the branch diff. Applies to all three execution
+  modes (hard-gate, ci-aware, soft-gate). Conservative
+  fallbacks ensure all tools run when diff computation
+  fails, the repository is a shallow clone, or the diff
+  is empty on a feature branch. Aggregate tools
+  (make check, pre-commit) are always in scope. Tool
+  config files are included in their respective tool
+  scopes.
+  (Spec: openspec/changes/pre-flight-file-scope-filter/,
+  Fixes: #434)
 - adopt-org-infra-release-workflows: Replace inline
   release preflight and GoReleaser jobs with org-infra
   reusable workflow callers (`reusable_release_preflight`
