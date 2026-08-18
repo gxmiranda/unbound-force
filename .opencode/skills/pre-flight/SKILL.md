@@ -116,6 +116,108 @@ and proceed to Phase 3.
 
 ---
 
+## Phase 2a: File-Scope Filter
+
+Before building the CI coverage matrix, filter out tools
+that have no applicable files in the branch diff. This
+avoids running tools whose scope does not intersect with
+the changes on this branch.
+
+### File-scope mapping
+
+| Tool | In-scope file patterns |
+|------|----------------------|
+| `go test` | `*.go`, `go.mod`, `go.sum` |
+| `golangci-lint` | `*.go`, `go.mod`, `go.sum`, `.golangci.yml`, `.golangci.yaml` |
+| `ruff` | `*.py`, `ruff.toml`, `pyproject.toml` |
+| `pytest` | `*.py`, `pyproject.toml`, `setup.py`, `conftest.py` |
+| `yamllint` | `*.yml`, `*.yaml`, `.yamllint.yml`, `.yamllint.yaml` |
+| `make check` | _always in scope_ |
+| `pre-commit` | _always in scope_ |
+
+Tools marked "always in scope" MUST NOT be skipped by the
+file-scope filter. These are aggregate tools whose scope
+cannot be reliably determined from file extensions alone.
+
+Additional tools added to Phase 2's tool-to-command mapping
+in the future MUST have a corresponding file-scope entry
+added to this table.
+
+Note: `go vet` and `go build` are CI commands discovered
+in Phase 1 (CI Workflow Parsing), not independently detected
+tools in Phase 2 (Tool Detection). They do not need scope
+entries because they are not individually executed by the
+pre-flight skill. They are covered by the `make check`
+aggregate tool entry (always in scope) and, in the case of
+`go vet`, by `golangci-lint`'s inclusion of vet rules.
+
+File patterns use suffix matching against the full path
+returned by `git diff --name-only`. A pattern `*.go`
+matches any file whose path ends in `.go`, regardless of
+directory depth (e.g., `internal/scaffold/foo.go` matches
+`*.go`).
+
+### Branch diff computation
+
+Compute the list of files changed on this branch relative
+to the default branch:
+
+```bash
+DEFAULT_BRANCH=<detected per Phase 4a: Baseline Establishment, "Detect the default branch" subsection>
+MERGE_BASE=$(git merge-base HEAD origin/${DEFAULT_BRANCH})
+CHANGED_FILES=$(git diff --name-only ${MERGE_BASE}...HEAD)
+```
+
+Use the same default branch detection logic described in
+Phase 4a ("Detect the default branch" subsection). If the
+default branch cannot be
+detected, or if the diff command fails, skip the file-scope
+filter entirely and proceed to Phase 3 with all tools
+(conservative fallback).
+
+If the diff is empty (no changed files) and the current
+branch is NOT the default branch, skip the file-scope
+filter and run all tools (conservative fallback), since
+an empty diff on a feature branch may indicate a git state
+anomaly. Report: "Empty diff detected — running all tools
+as conservative fallback."
+
+If the repository is a shallow clone (detected via
+`git rev-parse --is-shallow-repository`), skip the
+file-scope filter and run all tools, since the merge-base
+computation may produce incomplete results in shallow
+clones.
+
+### Filter logic
+
+For each detected and available tool from Phase 2:
+
+1. Look up the tool's in-scope file patterns in the
+   mapping table above.
+2. If the tool is marked "always in scope," it proceeds
+   to Phase 3 unconditionally.
+3. Intersect the branch diff file list with the tool's
+   file-scope patterns using suffix matching.
+4. If zero diff files match the tool's patterns, mark the
+   tool as "SKIP — no in-scope files."
+5. If one or more diff files match, the tool proceeds to
+   Phase 3 as normal.
+
+### Output
+
+Report the file-scope filter results:
+
+```
+File-scope filter (Phase 2a):
+  Branch diff: 2 files (release.yml, .goreleaser.yaml)
+  - go test: SKIP — no in-scope files
+  - golangci-lint: SKIP — no in-scope files
+  - yamllint: in scope (1 file matches)
+  - make check: always in scope
+```
+
+---
+
 ## Phase 3: CI Coverage Matrix
 
 Build and display a coverage matrix that maps each
@@ -125,11 +227,16 @@ visible and auditable.
 
 ### Matrix construction
 
-For each detected and available tool, determine which CI
-check (if any) covers the same verification. Map tool
-names to CI check names by matching on the tool's purpose
-(e.g., `go test` maps to a CI check containing "test",
-`golangci-lint` maps to a check containing "lint").
+For each detected and available tool that has in-scope
+files in the branch diff (i.e., tools that survived
+Phase 2a's file-scope filter), determine which CI check
+(if any) covers the same verification. Tools marked
+"SKIP — no in-scope files" in Phase 2a are excluded from
+the matrix and are not evaluated for CI coverage. Map
+tool names to CI check names by matching on the tool's
+purpose (e.g., `go test` maps to a CI check containing
+"test", `golangci-lint` maps to a check containing
+"lint").
 
 ### Decision rules (ci-aware mode)
 
@@ -142,12 +249,15 @@ names to CI check names by matching on the tool's purpose
 
 ### Decision rules (hard-gate mode)
 
-In hard-gate mode, ALL detected and available tools are
-marked "Run locally = Yes" regardless of CI status. The
-CI status column in the matrix shows the actual status if
-available, or "N/A" if CI results were not provided. The
-coverage matrix is still displayed for visibility, but
-skip decisions are not applied.
+In hard-gate mode, all detected and available tools that
+have in-scope files in the branch diff (per Phase 2a) are
+marked "Run locally = Yes" regardless of CI status. Tools
+marked "SKIP — no in-scope files" in Phase 2a are excluded
+from the coverage matrix's "Run locally" decisions and are
+not executed. The CI status column in the matrix shows the
+actual status if available, or "N/A" if CI results were
+not provided. The coverage matrix is still displayed for
+visibility.
 
 ### Display format
 
@@ -195,9 +305,11 @@ If no tools are marked "Yes" (all covered by CI): report
 
 ### soft-gate mode
 
-Execute ALL detected and available tools (same as
-hard-gate). Do NOT stop on first failure — record all
-exit codes and output for every tool.
+Execute all detected and available tools that have
+in-scope files in the branch diff (same scope filtering
+as hard-gate, per Phase 2a). Do NOT stop on first
+failure — record all exit codes and output for every
+tool.
 
 - If ALL tools pass: verdict is PASS. No baseline
   establishment is needed. Skip Phase 4a and 4b.
@@ -247,6 +359,9 @@ fi
 If neither resolves, treat the baseline as unavailable
 and fall through to the conservative fallback (all
 failures classified as `unknown` = branch-caused).
+
+Record which baseline method was used: `CI API`,
+`worktree`, or `unavailable`.
 
 ### Tier 1 — CI API baseline
 
@@ -368,16 +483,19 @@ Present results in a standardized format.
 ### CI Coverage Matrix
 | Local tool | CI check | CI status | Run locally? |
 |------------|----------|-----------|--------------|
-| ...        | ...      | ...       | ...          |
+| ...        | ...      | ...       | Yes          |
+| ...        | ...      | ...       | SKIP — no in-scope files |
 
 ### Execution Results
 | Tool | Command | Exit code | Status |
 |------|---------|-----------|--------|
 | ...  | ...     | ...       | ...    |
+| ...  | ...     | —         | SKIP — no in-scope files |
 
 ### Verdict
 - **Mode**: hard-gate | ci-aware
 - **Result**: PASS | FAIL
+- **Skipped — no in-scope files**: N tools
 - **Failures**: [list if any]
 ```
 
@@ -389,24 +507,35 @@ Present results in a standardized format.
 ### CI Coverage Matrix
 | Local tool | CI check | CI status | Run locally? |
 |------------|----------|-----------|--------------|
-| ...        | ...      | ...       | ...          |
+| ...        | ...      | ...       | Yes          |
+| ...        | ...      | ...       | SKIP — no in-scope files |
 
 ### Execution Results
 | Tool | Command | Exit code | Status | Causality |
 |------|---------|-----------|--------|-----------|
 | ...  | ...     | ...       | ...    | ...       |
+| ...  | ...     | —         | SKIP — no in-scope files | — |
 
 ### Verdict
 - **Mode**: soft-gate
 - **Result**: PASS | FAIL (branch-caused)
+- **Skipped — no in-scope files**: N tools
 - **Branch-caused failures**: [list if any]
 - **Pre-existing failures**: [list if any]
 - **Baseline method**: CI API | worktree | unavailable
 ```
 
+Tools skipped by the file-scope filter (Phase 2a) use the
+canonical status string `SKIP — no in-scope files` (em
+dash) in both the coverage matrix "Run locally?" column
+and the execution results Status column. Skipped tools are
+counted as PASS for the overall verdict — a tool with zero
+applicable files in the diff cannot produce findings.
+
 The `Causality` column in the Execution Results table
 contains one of: `branch-caused`, `pre-existing`,
-`unknown`, or `—` (for tools that passed).
+`unknown`, `—` (for tools that passed), or `—` (for
+skipped tools).
 
 The `Result` field is:
 - `PASS` if no branch-caused or unknown failures exist
