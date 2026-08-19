@@ -1405,6 +1405,19 @@ func filterEmptyCustomPacks(candidates []string, root string) []string {
 	return packs
 }
 
+// simpleTool defines a Group B sub-tool entry for initSubTools.
+// Each entry maps a tool name to its sentinel path (relative to
+// TargetDir), result name, display label, optional extra args
+// for ExecCmd, and an optional forceFlag appended on re-init.
+type simpleTool struct {
+	name      string   // config + LookPath key
+	sentinel  string   // path to check (skip init if exists)
+	result    string   // subToolResult.name
+	label     string   // display text for logf
+	args      []string // extra args after "init"
+	forceFlag string   // flag appended on force re-init (empty = none)
+}
+
 // initSubTools initializes sub-tools after file scaffolding.
 // Errors are captured and reported as warnings in printSummary,
 // not hard failures (per Constitution Principle II — Composability First).
@@ -1499,26 +1512,20 @@ func initSubTools(opts *Options) []subToolResult {
 
 	// simpleTools defines Group B tools. Each entry maps a tool
 	// name to its sentinel path (relative to TargetDir), result
-	// name, display label, and optional extra args for ExecCmd.
-	type simpleTool struct {
-		name     string   // config + LookPath key
-		sentinel string   // path to check (skip init if exists)
-		result   string   // subToolResult.name
-		label    string   // display text for logf
-		args     []string // extra args after "init"
-	}
-
+	// name, display label, optional extra args for ExecCmd, and
+	// an optional forceFlag appended on force re-initialization.
 	simpleTools := []simpleTool{
 		{"replicator", ".uf/replicator", ".uf/replicator/",
-			"Replicator workspace", nil},
+			"Replicator workspace", nil, ""},
 		{"specify", ".specify", ".specify/",
 			"Speckit framework",
-			[]string{"--here", "--integration", "opencode", "--offline"}},
+			[]string{"--here", "--integration", "opencode", "--offline"},
+			"--force"},
 		{"openspec", filepath.Join("openspec", "config.yaml"),
 			"openspec/", "OpenSpec framework",
-			[]string{"--tools", "opencode"}},
+			[]string{"--tools", "opencode"}, "--force"},
 		{"gaze", filepath.Join(".opencode", "agents", "gaze-reporter.md"),
-			"gaze", "Gaze integration", nil},
+			"gaze", "Gaze integration", nil, "--force"},
 	}
 
 	for _, tool := range simpleTools {
@@ -1533,8 +1540,7 @@ func initSubTools(opts *Options) []subToolResult {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			r := initSimpleTool(opts, tool.name, tool.sentinel,
-				tool.result, tool.label, tool.args, logf)
+			r := initSimpleTool(opts, tool, logf)
 			if r != nil {
 				collect(*r)
 			}
@@ -1622,26 +1628,48 @@ func initDewey(opts *Options, logf func(string, ...interface{})) []subToolResult
 }
 
 // initSimpleTool initializes a single sub-tool by checking a
-// sentinel path and running "<name> init [args...]". Returns
-// nil if the sentinel already exists (tool already initialized).
-func initSimpleTool(opts *Options, name, sentinel, resultName, label string, extraArgs []string, logf func(string, ...interface{})) *subToolResult {
-	sentinelPath := filepath.Join(opts.TargetDir, sentinel)
-	if _, statErr := os.Stat(sentinelPath); !os.IsNotExist(statErr) {
+// sentinel path and running "<name> init [args...]". Returns nil
+// if the sentinel already exists and Force is false (tool already
+// initialized). When Force is true and the sentinel exists, the
+// tool is re-initialized with its forceFlag (if declared) and the
+// result uses action "re-initialized". When Force is true but the
+// sentinel does not exist, the tool is initialized normally and
+// the result uses action "initialized" (forceFlag is not appended
+// because there is nothing to overwrite).
+func initSimpleTool(opts *Options, tool simpleTool, logf func(string, ...interface{})) *subToolResult {
+	sentinelPath := filepath.Join(opts.TargetDir, tool.sentinel)
+	_, statErr := os.Stat(sentinelPath)
+	sentinelExists := statErr == nil
+
+	if sentinelExists && !opts.Force {
 		return nil // Already initialized.
 	}
 
-	logf("  Initializing %s...\n", label)
-	args := append([]string{"init"}, extraArgs...)
-	if out, initErr := opts.ExecCmd(name, args...); initErr != nil {
+	logf("  Initializing %s...\n", tool.label)
+	args := append([]string{"init"}, tool.args...)
+
+	// On force re-init (sentinel existed), append the tool's force
+	// flag so the sub-tool also re-initializes. First-time init
+	// never sends the force flag — there is nothing to overwrite.
+	if opts.Force && sentinelExists && tool.forceFlag != "" {
+		args = append(args, tool.forceFlag)
+	}
+
+	if out, initErr := opts.ExecCmd(tool.name, args...); initErr != nil {
 		return &subToolResult{
-			name: resultName, action: "failed",
-			detail:  fmt.Sprintf("%s init: %s", name, initErr),
+			name: tool.result, action: "failed",
+			detail:  fmt.Sprintf("%s init: %s", tool.name, initErr),
 			err:     initErr,
 			output:  out,
 		}
 	}
+
+	action := "initialized"
+	if opts.Force && sentinelExists {
+		action = "re-initialized"
+	}
 	return &subToolResult{
-		name: resultName, action: "initialized"}
+		name: tool.result, action: action}
 }
 
 // subToolSymbol returns the display symbol for a sub-tool result action.
@@ -1654,8 +1682,8 @@ func subToolSymbol(action string) string {
 	case "skipped", "dry-run":
 		return "—"
 	default:
-		// "initialized", "completed", "created", "configured",
-		// "already configured", "overwritten"
+		// "initialized", "re-initialized", "completed", "created",
+		// "configured", "already configured", "overwritten"
 		return "✓"
 	}
 }

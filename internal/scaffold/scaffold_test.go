@@ -6859,3 +6859,306 @@ func TestWarnStaleCommandRefs_NoAgentFiles(t *testing.T) {
 		t.Errorf("expected no output when no agent dir exists, got: %s", buf.String())
 	}
 }
+
+// --- initSimpleTool force re-init tests ---
+
+func TestInitSimpleTool_SentinelExistsForceTrue(t *testing.T) {
+	dir := t.TempDir()
+	// Create sentinel so the tool appears already initialized.
+	sentinel := filepath.Join(dir, ".specify")
+	if err := os.MkdirAll(sentinel, 0o755); err != nil {
+		t.Fatalf("mkdir sentinel: %v", err)
+	}
+
+	rec := &scaffoldCmdRecorder{errors: map[string]error{}}
+	opts := &Options{
+		TargetDir: dir,
+		Force:     true,
+		LookPath:  stubScaffoldLookPath(map[string]string{"specify": "/usr/local/bin/specify"}),
+		ExecCmd:   rec.execCmd,
+	}
+
+	tool := simpleTool{
+		name:      "specify",
+		sentinel:  ".specify",
+		result:    ".specify/",
+		label:     "Speckit framework",
+		args:      []string{"--here", "--integration", "opencode", "--offline"},
+		forceFlag: "--force",
+	}
+	logf := func(string, ...interface{}) {}
+
+	r := initSimpleTool(opts, tool, logf)
+	if r == nil {
+		t.Fatal("expected non-nil result when Force=true and sentinel exists")
+	}
+	if r.action != "re-initialized" {
+		t.Errorf("expected action %q, got %q", "re-initialized", r.action)
+	}
+
+	// Verify ExecCmd was called.
+	if len(rec.calls) == 0 {
+		t.Error("expected ExecCmd to be called")
+	}
+}
+
+func TestInitSimpleTool_SentinelExistsNoForce(t *testing.T) {
+	dir := t.TempDir()
+	sentinel := filepath.Join(dir, ".specify")
+	if err := os.MkdirAll(sentinel, 0o755); err != nil {
+		t.Fatalf("mkdir sentinel: %v", err)
+	}
+
+	rec := &scaffoldCmdRecorder{errors: map[string]error{}}
+	opts := &Options{
+		TargetDir: dir,
+		Force:     false,
+		LookPath:  stubScaffoldLookPath(map[string]string{"specify": "/usr/local/bin/specify"}),
+		ExecCmd:   rec.execCmd,
+	}
+
+	tool := simpleTool{
+		name:      "specify",
+		sentinel:  ".specify",
+		result:    ".specify/",
+		label:     "Speckit framework",
+		args:      []string{"--here", "--integration", "opencode", "--offline"},
+		forceFlag: "--force",
+	}
+	logf := func(string, ...interface{}) {}
+
+	r := initSimpleTool(opts, tool, logf)
+	if r != nil {
+		t.Errorf("expected nil result when Force=false and sentinel exists, got %+v", r)
+	}
+
+	// Verify ExecCmd was NOT called.
+	if len(rec.calls) != 0 {
+		t.Errorf("expected no ExecCmd calls, got: %v", rec.calls)
+	}
+}
+
+func TestInitSimpleTool_ForcePassesForceFlag(t *testing.T) {
+	dir := t.TempDir()
+	sentinel := filepath.Join(dir, ".specify")
+	if err := os.MkdirAll(sentinel, 0o755); err != nil {
+		t.Fatalf("mkdir sentinel: %v", err)
+	}
+
+	rec := &scaffoldCmdRecorder{errors: map[string]error{}}
+	opts := &Options{
+		TargetDir: dir,
+		Force:     true,
+		LookPath:  stubScaffoldLookPath(map[string]string{"specify": "/usr/local/bin/specify"}),
+		ExecCmd:   rec.execCmd,
+	}
+
+	tool := simpleTool{
+		name:      "specify",
+		sentinel:  ".specify",
+		result:    ".specify/",
+		label:     "Speckit framework",
+		args:      []string{"--here", "--integration", "opencode", "--offline"},
+		forceFlag: "--force",
+	}
+	logf := func(string, ...interface{}) {}
+
+	r := initSimpleTool(opts, tool, logf)
+	if r == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	// Verify the recorded command includes --force at the end.
+	expected := "specify init --here --integration opencode --offline --force"
+	found := false
+	for _, call := range rec.calls {
+		if call == expected {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected call %q, got: %v", expected, rec.calls)
+	}
+}
+
+func TestInitSimpleTool_NoForceFlagDeclared(t *testing.T) {
+	dir := t.TempDir()
+	sentinel := filepath.Join(dir, ".uf", "replicator")
+	if err := os.MkdirAll(sentinel, 0o755); err != nil {
+		t.Fatalf("mkdir sentinel: %v", err)
+	}
+
+	rec := &scaffoldCmdRecorder{errors: map[string]error{}}
+	opts := &Options{
+		TargetDir: dir,
+		Force:     true,
+		LookPath:  stubScaffoldLookPath(map[string]string{"replicator": "/usr/local/bin/replicator"}),
+		ExecCmd:   rec.execCmd,
+	}
+
+	tool := simpleTool{
+		name:      "replicator",
+		sentinel:  ".uf/replicator",
+		result:    ".uf/replicator/",
+		label:     "Replicator workspace",
+		args:      nil,
+		forceFlag: "", // empty — no force flag
+	}
+	logf := func(string, ...interface{}) {}
+
+	r := initSimpleTool(opts, tool, logf)
+	if r == nil {
+		t.Fatal("expected non-nil result on force re-init")
+	}
+	if r.action != "re-initialized" {
+		t.Errorf("expected action %q, got %q", "re-initialized", r.action)
+	}
+
+	// Verify ExecCmd was called with "replicator init" only — no
+	// extraneous --force flag because forceFlag is empty.
+	expected := "replicator init"
+	found := false
+	for _, call := range rec.calls {
+		if call == expected {
+			found = true
+		}
+		if strings.Contains(call, "--force") {
+			t.Errorf("unexpected --force in command: %s", call)
+		}
+	}
+	if !found {
+		t.Errorf("expected call %q, got: %v", expected, rec.calls)
+	}
+}
+
+func TestInitSubTools_SpecifyForcePassthrough(t *testing.T) {
+	dir := t.TempDir()
+	// Create .specify/ so sentinel exists — force should re-init.
+	if err := os.MkdirAll(filepath.Join(dir, ".specify"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	rec := &scaffoldCmdRecorder{errors: map[string]error{}}
+	opts := &Options{
+		TargetDir: dir,
+		Force:     true,
+		LookPath:  stubScaffoldLookPath(map[string]string{"specify": "/usr/local/bin/specify"}),
+		ExecCmd:   rec.execCmd,
+	}
+
+	results := initSubTools(opts)
+
+	// Verify .specify/ result with "re-initialized" action.
+	foundReInit := false
+	for _, r := range results {
+		if r.name == ".specify/" && r.action == "re-initialized" {
+			foundReInit = true
+		}
+	}
+	if !foundReInit {
+		t.Errorf("expected .specify/ re-initialized result, got %v", results)
+	}
+
+	// Verify the recorded command includes --force.
+	expected := "specify init --here --integration opencode --offline --force"
+	found := false
+	for _, call := range rec.calls {
+		if call == expected {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected call %q, got: %v", expected, rec.calls)
+	}
+}
+
+func TestInitSimpleTool_ForceReinitFails(t *testing.T) {
+	dir := t.TempDir()
+	sentinel := filepath.Join(dir, ".specify")
+	if err := os.MkdirAll(sentinel, 0o755); err != nil {
+		t.Fatalf("mkdir sentinel: %v", err)
+	}
+
+	rec := &scaffoldCmdRecorder{
+		errors: map[string]error{
+			"specify init --here --integration opencode --offline --force": fmt.Errorf("specify crashed"),
+		},
+	}
+	opts := &Options{
+		TargetDir: dir,
+		Force:     true,
+		LookPath:  stubScaffoldLookPath(map[string]string{"specify": "/usr/local/bin/specify"}),
+		ExecCmd:   rec.execCmd,
+	}
+
+	tool := simpleTool{
+		name:      "specify",
+		sentinel:  ".specify",
+		result:    ".specify/",
+		label:     "Speckit framework",
+		args:      []string{"--here", "--integration", "opencode", "--offline"},
+		forceFlag: "--force",
+	}
+	logf := func(string, ...interface{}) {}
+
+	r := initSimpleTool(opts, tool, logf)
+	if r == nil {
+		t.Fatal("expected non-nil result on failed re-init")
+	}
+	if r.action != "failed" {
+		t.Errorf("expected action %q, got %q", "failed", r.action)
+	}
+	if r.err == nil {
+		t.Error("expected non-nil err on failed re-init")
+	}
+}
+
+func TestInitSimpleTool_NoSentinelForceTrue(t *testing.T) {
+	dir := t.TempDir()
+	// Do NOT create sentinel — first-time init even with Force=true.
+
+	rec := &scaffoldCmdRecorder{errors: map[string]error{}}
+	opts := &Options{
+		TargetDir: dir,
+		Force:     true,
+		LookPath:  stubScaffoldLookPath(map[string]string{"specify": "/usr/local/bin/specify"}),
+		ExecCmd:   rec.execCmd,
+	}
+
+	tool := simpleTool{
+		name:      "specify",
+		sentinel:  ".specify",
+		result:    ".specify/",
+		label:     "Speckit framework",
+		args:      []string{"--here", "--integration", "opencode", "--offline"},
+		forceFlag: "--force",
+	}
+	logf := func(string, ...interface{}) {}
+
+	r := initSimpleTool(opts, tool, logf)
+	if r == nil {
+		t.Fatal("expected non-nil result on first-time init")
+	}
+	if r.action != "initialized" {
+		t.Errorf("expected action %q, got %q", "initialized", r.action)
+	}
+
+	// Verify ExecCmd args do NOT include --force (first-time init).
+	for _, call := range rec.calls {
+		if strings.Contains(call, "--force") {
+			t.Errorf("--force should NOT be passed on first-time init, got: %s", call)
+		}
+	}
+
+	// Verify the base command was called.
+	expected := "specify init --here --integration opencode --offline"
+	found := false
+	for _, call := range rec.calls {
+		if call == expected {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected call %q, got: %v", expected, rec.calls)
+	}
+}

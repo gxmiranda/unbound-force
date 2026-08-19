@@ -5,6 +5,16 @@ Each entry follows the format: `- <change-name>: <summary>`.
 
 ## Unreleased
 
+### Fixed
+- fix-init-force-passthrough: `uf init --force` now
+  correctly re-initializes Group B sub-tools (specify,
+  replicator, openspec, gaze) and passes `--force`
+  through to sub-tool CLIs. Previously, `initSimpleTool`
+  silently skipped re-initialization regardless of the
+  force flag.
+  (Spec: openspec/changes/fix-init-force-passthrough/,
+  Fixes: #479)
+
 ### Changed
 - pre-flight-file-scope-filter: Add Phase 2a file-scope
   filtering to skip tools that have zero in-scope files
