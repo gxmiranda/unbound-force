@@ -2,6 +2,9 @@
 
 ## Local Build
 
+Prerequisites: Docker with Buildx; QEMU registration is required for the
+arm64 build when running on an amd64 host.
+
 Build and load each supported platform image:
 
 ```bash
@@ -16,17 +19,23 @@ docker buildx build --platform linux/arm64 --load \
   images/fullsend-opencode
 ```
 
-For each image, verify UID 998, exact versions, and excluded commands:
+For each image, verify UID 998, exact declared versions, and excluded commands:
 
 ```bash
-docker run --rm --platform linux/amd64 --entrypoint '' \
-  fullsend-opencode:local-amd64 sh -ceu '
-    test "$(id -u)" = "998"
-    opencode --version
-    uf --version
-    ! command -v dewey
-    ! command -v ollama
-  '
+EXPECTED_OPENCODE=$(sed -n 's/^ARG OPENCODE_VERSION=//p' images/fullsend-opencode/Containerfile)
+EXPECTED_UF=$(sed -n 's/^ARG UF_VERSION=//p' images/fullsend-opencode/Containerfile)
+
+for arch in amd64 arm64; do
+  docker run --rm --platform "linux/${arch}" --entrypoint '' \
+    -e EXPECTED_OPENCODE -e EXPECTED_UF \
+    "fullsend-opencode:local-${arch}" sh -ceu '
+      test "$(id -u)" = "998"
+      test "$(opencode --version)" = "$EXPECTED_OPENCODE"
+      uf --version | grep -F "unbound-force version $EXPECTED_UF "
+      ! command -v dewey
+      ! command -v ollama
+    '
+done
 ```
 
 Repeat with the arm64 image and platform.
@@ -55,7 +64,22 @@ docker pull --platform linux/arm64 \
 ```
 
 Verify the signature and attestations with the repository's documented
-certificate identity and the workflow's OIDC issuer.
+certificate identity and the workflow's OIDC issuer:
+
+```bash
+IMAGE=ghcr.io/unbound-force/fullsend-opencode@sha256:<digest>
+IDENTITY='https://github.com/unbound-force/unbound-force/.github/workflows/fullsend-opencode-image.yml@.*'
+ISSUER=https://token.actions.githubusercontent.com
+
+cosign verify --certificate-identity-regexp="$IDENTITY" \
+  --certificate-oidc-issuer="$ISSUER" "$IMAGE"
+cosign verify-attestation --type https://slsa.dev/provenance/v1 \
+  --certificate-identity-regexp="$IDENTITY" \
+  --certificate-oidc-issuer="$ISSUER" "$IMAGE"
+cosign verify-attestation --type https://spdx.dev/Document \
+  --certificate-identity-regexp="$IDENTITY" \
+  --certificate-oidc-issuer="$ISSUER" "$IMAGE"
+```
 
 ## FullSend Harness Validation
 

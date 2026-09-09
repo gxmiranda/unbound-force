@@ -34,5 +34,8 @@
 - The specification records accepted issue decisions: UID 998 instead of
   UID 1000, verified release tarballs instead of RPMs, and hooks deferred to
   issue #515.
+- Container image, architecture, digest, and attestation terms are explicit
+  user-facing artifact contracts required for independent verification, not
+  incidental implementation details.
 - FullSend runtime documentation is an external deliverable tracked by issue
   #511 and is not created in this repository.

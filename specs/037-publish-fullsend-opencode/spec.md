@@ -2,7 +2,7 @@
 
 **Feature Branch**: `speckit/037-publish-fullsend-opencode`
 **Created**: 2026-09-10
-**Status**: Draft
+**Status**: Planned
 **Input**: User description: "https://github.com/unbound-force/unbound-force/issues/511"
 
 ## Clarifications

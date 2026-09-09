@@ -73,7 +73,8 @@ specs/037-publish-fullsend-opencode/
 ```text
 images/
 └── fullsend-opencode/
-    └── Containerfile
+    ├── Containerfile
+    └── .dockerignore
 .github/workflows/
 └── fullsend-opencode-image.yml
 renovate.json

@@ -12,11 +12,11 @@ the feature specification requires build, integration, and harness validation.
 
 **Purpose**: Establish the image, workflow, and maintenance file locations.
 
-- [ ] T001 Create the image directory and Containerfile placeholder at `images/fullsend-opencode/Containerfile`.
-- [ ] T002 Create the image workflow at `.github/workflows/fullsend-opencode-image.yml` with the repository SPDX header, path filters, concurrency, and workflow-level least-privilege permissions.
-- [ ] T003 Create the Renovate configuration at `renovate.json` with custom-manager scope limited to the OpenCode image Containerfile.
-- [ ] T004 [P] Update the project structure and workflow inventory in `AGENTS.md`.
-- [ ] T005 [P] Add the user-facing image change entry to `CHANGELOG.md` under `Unreleased/Added`, referencing issue #511.
+- [x] T001 Create the image directory and Containerfile placeholder at `images/fullsend-opencode/Containerfile`.
+- [x] T002 Create the image workflow at `.github/workflows/fullsend-opencode-image.yml` with the repository SPDX header, path filters, concurrency, and workflow-level least-privilege permissions.
+- [x] T003 Create the Renovate configuration at `renovate.json` with custom-manager scope limited to the OpenCode image Containerfile.
+- [x] T004 [P] Update the project structure and workflow inventory in `AGENTS.md`.
+- [x] T005 [P] Add the user-facing image change entry to `CHANGELOG.md` under `Unreleased/Added`, referencing issue #511.
 
 ---
 
@@ -25,11 +25,11 @@ the feature specification requires build, integration, and harness validation.
 **Purpose**: Define immutable inputs, artifact identity, publication policy, and
 job dependency boundaries before story-specific validation is added.
 
-- [ ] T006 Pin the FullSend parent manifest digest and declare OpenCode, uf, target-architecture, and per-architecture checksum arguments in `images/fullsend-opencode/Containerfile`.
-- [ ] T007 Define the image name, event-to-tag matrix, digest output, and release-tag-to-uf-version validation in `.github/workflows/fullsend-opencode-image.yml`.
-- [ ] T008 Define separate pull-request, publication, published-validation, scanner, and supply-chain jobs with explicit `needs` relationships and least-privilege permissions in `.github/workflows/fullsend-opencode-image.yml`.
-- [ ] T009 Add the Renovate OpenCode and uf custom managers, non-automerge rule, and manual checksum-update note in `renovate.json`.
-- [ ] T010 [P] Write the final image publication contract and digest-consumer reference in `specs/037-publish-fullsend-opencode/contracts/image-publication.md`.
+- [x] T006 Pin the FullSend parent manifest digest and declare OpenCode, uf, target-architecture, and per-architecture checksum arguments in `images/fullsend-opencode/Containerfile`.
+- [x] T007 Define the image name, event-to-tag matrix, digest output, and release-tag-to-uf-version validation in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T008 Define separate pull-request, publication, published-validation, scanner, and supply-chain jobs with explicit `needs` relationships and least-privilege permissions in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T009 Add the Renovate OpenCode and uf custom managers, non-automerge rule, and manual checksum-update note in `renovate.json`.
+- [x] T010 [P] Write the final image publication contract and digest-consumer reference in `specs/037-publish-fullsend-opencode/contracts/image-publication.md`.
 
 **Checkpoint**: Immutable inputs, publication policy, and job boundaries are
 defined; user-story implementation can begin.
@@ -46,11 +46,11 @@ and uf runtimes while excluding Dewey and Ollama.
 
 ### Implementation
 
-- [ ] T011 [US1] Install the exact `opencode-ai` version as root during image construction and assert its version in `images/fullsend-opencode/Containerfile`.
-- [ ] T012 [US1] Download the architecture-specific uf release, select the matching checksum, reject unsupported architectures, verify with `sha256sum -c`, install `uf`, and remove temporary artifacts in `images/fullsend-opencode/Containerfile`.
-- [ ] T013 [US1] Restore the inherited `sandbox` runtime user at UID 998 in `images/fullsend-opencode/Containerfile`.
-- [ ] T014 [US1] Add fail-fast amd64 and arm64 pull-request validation with exact OpenCode/uf version assertions, UID 998 assertion, and Dewey/Ollama absence checks in `.github/workflows/fullsend-opencode-image.yml`.
-- [ ] T015 [US1] Execute the local amd64 and emulated arm64 build-and-run checks from `specs/037-publish-fullsend-opencode/quickstart.md` and record any required fixes in the implementation branch.
+- [x] T011 [US1] Install the exact `opencode-ai` version as root during image construction and assert its version in `images/fullsend-opencode/Containerfile`.
+- [x] T012 [US1] Download the architecture-specific uf release, select the matching checksum, reject unsupported architectures, verify with `sha256sum -c`, install `uf`, and remove temporary artifacts in `images/fullsend-opencode/Containerfile`.
+- [x] T013 [US1] Restore the inherited `sandbox` runtime user at UID 998 in `images/fullsend-opencode/Containerfile`.
+- [x] T014 [US1] Add fail-fast amd64 and arm64 pull-request validation with exact OpenCode/uf version assertions, UID 998 assertion, and Dewey/Ollama absence checks in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T015 [US1] Execute the local amd64 and emulated arm64 build-and-run checks from `specs/037-publish-fullsend-opencode/quickstart.md` and record any required fixes in the implementation branch.
 
 **Checkpoint**: Both supported architecture images build and independently
 pass runtime validation without publication.
@@ -68,11 +68,11 @@ minimal digest-pinned harness.
 
 ### Implementation
 
-- [ ] T016 [US2] Implement the non-PR multi-architecture Buildx publication and manifest-digest output in `.github/workflows/fullsend-opencode-image.yml`.
-- [ ] T017 [US2] Pull the published digest with explicit amd64 and arm64 platforms and run the same runtime assertions in `.github/workflows/fullsend-opencode-image.yml`.
-- [ ] T018 [US2] Add published-digest Trivy scanning with SARIF upload, scanner-execution failure handling, and report-only vulnerability findings in `.github/workflows/fullsend-opencode-image.yml`.
-- [ ] T019 [US2] Generate SLSA provenance and SPDX SBOM attestations bound to the manifest digest in `.github/workflows/fullsend-opencode-image.yml`.
-- [ ] T020 [US2] Sign the immutable digest with keyless cosign and verify the signature, provenance, and SBOM using the repository/workflow certificate identity in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T016 [US2] Implement the non-PR multi-architecture Buildx publication and manifest-digest output in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T017 [US2] Pull the published digest with explicit amd64 and arm64 platforms and run the same runtime assertions in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T018 [US2] Add published-digest Trivy scanning with SARIF upload, scanner-execution failure handling, and report-only vulnerability findings in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T019 [US2] Generate SLSA provenance and SPDX SBOM attestations bound to the manifest digest in `.github/workflows/fullsend-opencode-image.yml`.
+- [x] T020 [US2] Sign the immutable digest with keyless cosign and verify the signature, provenance, and SBOM using the repository/workflow certificate identity in `.github/workflows/fullsend-opencode-image.yml`.
 - [ ] T021 [US2] Run manifest inspection and anonymous digest pulls for both architectures after publication, recording the digest and platform evidence in `specs/037-publish-fullsend-opencode/quickstart.md` and issue #511.
 - [ ] T022 [US2] Configure a minimal FullSend harness with the published digest and execute a live harness run for each supported platform, recording startup and selected-digest evidence in `specs/037-publish-fullsend-opencode/quickstart.md` and issue #511.
 
@@ -92,9 +92,9 @@ manual checksum instructions.
 
 ### Implementation
 
-- [ ] T023 [US3] Validate that the Renovate custom manager discovers `OPENCODE_VERSION` from npm and `UF_VERSION` from GitHub releases in `renovate.json`.
-- [ ] T024 [US3] Document and validate the reviewed update unit consisting of `UF_VERSION`, `UF_SHA256_AMD64`, and `UF_SHA256_ARM64` in `renovate.json` and `images/fullsend-opencode/Containerfile`.
-- [ ] T025 [US3] Confirm the image build fails closed for stale or swapped uf checksums and unsupported `TARGETARCH` values using the image validation workflow.
+- [x] T023 [US3] Validate that the Renovate custom manager discovers `OPENCODE_VERSION` from npm and `UF_VERSION` from GitHub releases in `renovate.json`.
+- [x] T024 [US3] Document and validate the reviewed update unit consisting of `UF_VERSION`, `UF_SHA256_AMD64`, and `UF_SHA256_ARM64` in `renovate.json` and `images/fullsend-opencode/Containerfile`.
+- [x] T025 [US3] Confirm the image build fails closed for stale or swapped uf checksums and unsupported `TARGETARCH` values using the image validation workflow.
 
 **Checkpoint**: Runtime version updates are discoverable, reviewable, and
 cannot silently bypass architecture-specific integrity checks.
@@ -106,12 +106,12 @@ cannot silently bypass architecture-specific integrity checks.
 **Purpose**: Validate the complete change, synchronize documentation, and
 close the implementation loop without implementing deferred hooks.
 
-- [ ] T026 [P] Run `actionlint` and Renovate configuration validation against `.github/workflows/fullsend-opencode-image.yml` and `renovate.json`.
-- [ ] T027 [P] Run repository CI-parity checks from `.github/workflows/`, including `go test -race -count=1 ./...`, and record unrelated baseline failures without weakening gates.
-- [ ] T028 [P] Run the final local image builds and quickstart assertions from `specs/037-publish-fullsend-opencode/quickstart.md`.
+- [x] T026 [P] Run `actionlint` and Renovate configuration validation against `.github/workflows/fullsend-opencode-image.yml` and `renovate.json`.
+- [x] T027 [P] Run repository CI-parity checks from `.github/workflows/`, including `go test -race -count=1 ./...`, and record unrelated baseline failures without weakening gates.
+- [x] T028 [P] Run the final local image builds and quickstart assertions from `specs/037-publish-fullsend-opencode/quickstart.md`.
 - [ ] T029 [P] Prepare the coordinated external FullSend documentation change for `fullsend/docs/runtimes.md`, including the OpenCode runtime row, security matrix, digest usage, and deferred hooks gap; keep it tracked after the image PR merges.
 - [ ] T030 Run the code review council and record the implementation-review result in `specs/037-publish-fullsend-opencode/tasks.md` before replacing PR #586 with the Speckit PR.
-- [ ] T031 Record the deferred OpenCode hooks integration and issue #515 relationship in `specs/037-publish-fullsend-opencode/research.md` without adding the plugin to the initial image.
+- [x] T031 Record the deferred OpenCode hooks integration and issue #515 relationship in `specs/037-publish-fullsend-opencode/research.md` without adding the plugin to the initial image.
 
 ---
 
@@ -158,3 +158,21 @@ close the implementation loop without implementing deferred hooks.
 
 The OpenCode hooks plugin remains owned by issue #515 and is not part of the
 initial implementation task set beyond documenting the integration follow-up.
+
+## Execution Notes
+
+- Local amd64 and emulated arm64 image builds and runtime assertions pass.
+- Local amd64 image manifest: `sha256:7e59c4ee68b684b70ecbe97bb5eafcba306ec362ab90f7fdf28640f2ad3c7113`.
+- Local arm64 image manifest: `sha256:86b0793edf48ad642f863ab6488717ae2013b7b1de4305272f50a4a2c96b6055`.
+- Both local runs reported OpenCode `1.18.29`, uf `0.17.0`, UID 998, and no
+  Dewey or Ollama commands.
+- Stale checksum and unsupported architecture negative tests fail as expected.
+- `go test -race -count=1 ./...` passes.
+- `make check` reaches the existing lint gate but reports six unrelated
+  SA5011 staticcheck findings in `internal/doctor/doctor_test.go`; no gate was
+  weakened.
+- T021 and T022 remain post-publication acceptance tasks.
+- T029 remains the post-merge external FullSend documentation follow-up;
+  issue #511 intentionally remains open until it lands.
+- Implementation commits are local-only by user instruction; no remote push
+  or replacement PR has been created.
