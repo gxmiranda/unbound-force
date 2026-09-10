@@ -5,6 +5,24 @@
 **Status**: Draft
 **Input**: User description: "https://github.com/unbound-force/unbound-force/issues/511"
 
+## Clarifications
+
+### Session 2026-09-10
+
+- Q: How should published-image vulnerability scans affect signing? → A:
+  Scanner execution errors block signing and attestation; vulnerability
+  findings are reported but do not block signing.
+- Q: Which publication policy should the specification require? → A: Use
+  FullSend's tag convention: main pushes publish latest/dev/SHA, version tags
+  publish semver/minor/dev/SHA, manual dispatch publishes dev/SHA, and pull
+  requests never publish.
+- Q: When should the external FullSend documentation be completed relative to
+  this repository's image PR? → A: Track it after the image merge; keep issue
+  #511 open until the coordinated FullSend documentation PR lands.
+- Q: What evidence should satisfy the FullSend harness usability requirement?
+  → A: Verify anonymous digest pulls on both architectures and run a minimal
+  live FullSend harness using the digest.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Run OpenCode in a Known Sandbox (Priority: P1)
@@ -86,8 +104,8 @@ sources.
 - A stale architecture checksum MUST fail image construction.
 - A pull request MUST validate the image without publishing or granting
   registry write access.
-- A failed published-image validation or scan MUST prevent signing and
-  attestation.
+- A failed published-image validation or scanner execution MUST prevent
+  signing and attestation; vulnerability findings remain report-only.
 
 ## Requirements *(mandatory)*
 
@@ -112,13 +130,22 @@ sources.
 - **FR-010**: Pull requests MUST build and validate without publishing and
   without registry write permission.
 - **FR-011**: The image MUST be usable as the `image` value in a FullSend
-  harness when referenced by digest.
+  harness when referenced by digest; acceptance MUST include anonymous pulls
+  on both architectures and a minimal live harness run.
 - **FR-012**: Dependency-update configuration MUST discover the OpenCode and
   uf version declarations; uf checksum updates MUST remain reviewable and
   non-automerged.
 - **FR-013**: The upstream FullSend documentation MUST receive an OpenCode
   runtime entry and a security-matrix entry describing the temporary hooks
-  gap.
+  gap. This external deliverable is tracked after the image PR merges and
+  does not block merging the image implementation itself.
+- **FR-014**: The publication process MUST fail when the vulnerability scanner
+  cannot complete or produce a result, while recording detected vulnerability
+  findings without using them as a new repository-wide merge gate.
+- **FR-015**: Publication triggers and tags MUST follow the FullSend convention:
+  main pushes publish `latest`, `dev`, and a commit-SHA tag; version tags
+  publish semver, minor, `dev`, and a commit-SHA tags; manual dispatch publishes
+  `dev` and a commit-SHA tag; pull requests MUST NOT publish.
 
 ### Scope and Deferred Work
 
