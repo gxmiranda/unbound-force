@@ -359,9 +359,9 @@ jobs:
         env:
           IMAGE: ${{ needs.published-validation.outputs.image-ref }}
           MATRIX_ARCH: ${{ matrix.arch }}
-          PLATFORM: linux/${{ matrix.arch }}
         run: |
           set -eu
+          PLATFORM="linux/$MATRIX_ARCH"
           export DOCKER_CONFIG="$RUNNER_TEMP/fullsend-opencode-anonymous-docker"
           mkdir -p "$DOCKER_CONFIG"
           docker logout ghcr.io >/dev/null 2>&1 || true
