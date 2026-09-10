@@ -79,18 +79,20 @@ Verify the signature and attestations with the repository's documented
 certificate identity and the workflow's OIDC issuer:
 
 ```bash
-IMAGE=ghcr.io/unbound-force/fullsend-opencode@sha256:<digest>
+IMAGE=ghcr.io/unbound-force/fullsend-opencode
+DIGEST=sha256:<64-hex-digest>
+IMAGE_REF="${IMAGE}@${DIGEST}"
 IDENTITY='https://github.com/unbound-force/unbound-force/.github/workflows/fullsend-opencode-image.yml@refs/(heads/main|tags/v.*)'
 ISSUER=https://token.actions.githubusercontent.com
 
 cosign verify --certificate-identity-regexp="$IDENTITY" \
-  --certificate-oidc-issuer="$ISSUER" "$IMAGE"
+  --certificate-oidc-issuer="$ISSUER" "$IMAGE_REF"
 cosign verify-attestation --type https://slsa.dev/provenance/v1 \
   --certificate-identity-regexp="$IDENTITY" \
-  --certificate-oidc-issuer="$ISSUER" "$IMAGE"
+  --certificate-oidc-issuer="$ISSUER" "$IMAGE_REF"
 cosign verify-attestation --type https://spdx.dev/Document \
   --certificate-identity-regexp="$IDENTITY" \
-  --certificate-oidc-issuer="$ISSUER" "$IMAGE"
+  --certificate-oidc-issuer="$ISSUER" "$IMAGE_REF"
 ```
 
 ## FullSend Harness Validation

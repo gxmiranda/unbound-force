@@ -179,7 +179,7 @@ initial implementation task set beyond documenting the integration follow-up.
   post-publication and external documentation tasks remain open; the npm
   registry-integrity tradeoff remains the documented issue #511 decision.
 - T030 council result: APPROVE for the pre-push implementation gate on
-  2026-09-10 at commit `6327046`. Findings were resolved without weakening
+  2026-09-10 at commit `9979eee`. Findings were resolved without weakening
   quality or governance gates. T021, T022, and T029 remain intentionally
   pending post-publication or external follow-up work.
 - `go test -race -count=1 ./...` passes.
