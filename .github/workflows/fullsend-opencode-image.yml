@@ -68,7 +68,7 @@ jobs:
           test -n "$uf_version"
           expected_tag="v${uf_version}"
           if [ "$RELEASE_TAG" != "$expected_tag" ]; then
-            echo "::error::Release tag ${RELEASE_TAG} does not match UF_VERSION=${uf_version}"
+            echo "::error::Release tag does not match the pinned uf version"
             exit 1
           fi
 
@@ -96,7 +96,7 @@ jobs:
             fi
             sleep 10
           done
-          echo "::error::Release assets for ${RELEASE_TAG} were not available"
+          echo "::error::Required uf release assets were not available"
           exit 1
 
       - name: Log in to GitHub Container Registry
@@ -262,7 +262,7 @@ jobs:
       - name: Reject Stale OpenCode Integrity
         run: |
           if docker buildx build --platform linux/amd64 \
-            --build-arg OPENCODE_SHA512=0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 \
+            --build-arg OPENCODE_SHA512=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 \
             --tag fullsend-opencode:bad-opencode-integrity \
             --file images/fullsend-opencode/Containerfile \
             images/fullsend-opencode; then
@@ -359,17 +359,18 @@ jobs:
         env:
           IMAGE: ${{ needs.published-validation.outputs.image-ref }}
           MATRIX_ARCH: ${{ matrix.arch }}
+          PLATFORM: linux/${{ matrix.arch }}
         run: |
           set -eu
           export DOCKER_CONFIG="$RUNNER_TEMP/fullsend-opencode-anonymous-docker"
           mkdir -p "$DOCKER_CONFIG"
           docker logout ghcr.io >/dev/null 2>&1 || true
-          docker pull --platform "linux/${{ matrix.arch }}" "$IMAGE"
+          docker pull --platform "$PLATFORM" "$IMAGE"
           docker image inspect "$IMAGE" > /dev/null
           {
             echo "### Anonymous ${MATRIX_ARCH} digest pull"
             echo "Image: ${IMAGE}"
-            echo "Platform: linux/${MATRIX_ARCH}"
+            echo "Platform: ${PLATFORM}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   image-scan:
@@ -504,6 +505,8 @@ jobs:
       github.event_name != 'pull_request'
       && needs.build-and-publish.outputs.image-ref != ''
       && needs.build-and-publish.outputs.release-tags != ''
+      && needs.supply-chain.result == 'success'
+      && needs.image-scan.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
