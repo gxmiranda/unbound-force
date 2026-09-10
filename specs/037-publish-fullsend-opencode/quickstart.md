@@ -69,9 +69,11 @@ docker pull --platform linux/arm64 \
 ```
 
 If a publication-stage job fails after the candidate image is pushed, rerun
-the workflow from the same trusted ref. The rerun creates a new run-scoped
-candidate and repeats validation before promotion; stale candidate tags can be
-removed by a registry maintainer after the failure is investigated.
+the workflow from the same trusted ref after confirming release assets are
+available. The rerun creates a new run-scoped candidate and repeats validation
+before promotion; stale candidate tags can be removed by a registry maintainer
+after the failure is investigated. Version-tag runs wait up to 30 minutes for
+GoReleaser assets before failing.
 
 Verify the signature and attestations with the repository's documented
 certificate identity and the workflow's OIDC issuer:

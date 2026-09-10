@@ -82,8 +82,10 @@ jobs:
           uf_version="${RELEASE_TAG#v}"
           amd64="unbound-force_${uf_version}_linux_amd64.tar.gz"
           arm64="unbound-force_${uf_version}_linux_arm64.tar.gz"
-          for attempt in $(seq 1 30); do
-            echo "::debug::Waiting for release assets (attempt ${attempt}/30)"
+          # GoReleaser may still be uploading assets when the tag event arrives.
+          # Retry for 30 minutes before failing; a trusted-ref rerun is safe.
+          for attempt in $(seq 1 180); do
+            echo "::debug::Waiting for release assets (attempt ${attempt}/180)"
             if assets=$(gh release view "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" --json assets \
               --jq '.assets[].name' 2>/dev/null); then
