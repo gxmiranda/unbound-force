@@ -172,6 +172,10 @@ initial implementation task set beyond documenting the integration follow-up.
   validation, scanning, signing, and attestation succeed.
 - Pull-request CI now runs automated stale-checksum and unsupported-architecture
   negative builds in the `negative-validation` job.
+- Final local council review ran against the implementation. It confirmed the
+  post-publication and external documentation tasks remain open; the npm
+  registry-integrity tradeoff remains the documented issue #511 decision.
+- T030 remains open until all implementation review findings are resolved.
 - `go test -race -count=1 ./...` passes.
 - `make check` reaches the existing lint gate but reports six unrelated
   SA5011 staticcheck findings in `internal/doctor/doctor_test.go`; no gate was
