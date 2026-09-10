@@ -37,9 +37,9 @@ RUN set -eux; \
     curl -fsSL "https://github.com/unbound-force/unbound-force/releases/download/v${UF_VERSION}/unbound-force_${UF_VERSION}_linux_${TARGETARCH}.tar.gz" \
       -o /tmp/uf.tar.gz; \
     echo "${UF_SHA256}  /tmp/uf.tar.gz" | sha256sum -c; \
-    tar -xzf /tmp/uf.tar.gz -C /usr/local/bin ; \
+    tar -xzf /tmp/uf.tar.gz -C /usr/local/bin; \
     rm /tmp/uf.tar.gz; \
-    chmod +x /usr/local/bin/unbound-force ; \
+    chmod +x /usr/local/bin/unbound-force; \
     ln -s /usr/local/bin/unbound-force /usr/local/bin/uf
 
 RUN opencode --version
