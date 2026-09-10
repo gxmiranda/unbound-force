@@ -4,6 +4,15 @@
   "enabledManagers": ["custom.regex"],
   "packageRules": [
     {
+      "description": "OpenCode updates require reviewed tarball integrity",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["opencode-ai"],
+      "automerge": false,
+      "prBodyNotes": [
+        "**Manual action required:** Update `OPENCODE_SHA512` from the npm `dist.integrity` value for `opencode-ai@{{newVersion}}`. The image build intentionally fails until the tarball hash matches."
+      ]
+    },
+    {
       "description": "uf updates require reviewed architecture checksums",
       "matchManagers": ["custom.regex"],
       "matchPackageNames": ["unbound-force/unbound-force"],

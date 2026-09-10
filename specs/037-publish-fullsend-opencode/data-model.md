@@ -32,7 +32,8 @@ Validation rules:
 - **Pull request**: build and validate only; no registry publication.
 - **Main push**: publish `latest`, `dev`, and commit-SHA tags.
 - **Version tag**: publish semver, minor, `dev`, and commit-SHA tags.
-- **Manual dispatch**: publish `dev` and commit-SHA tags.
+- **Manual dispatch from trusted `main` or version-tag refs**: publish `dev`
+  and commit-SHA tags; other branch refs do not publish.
 
 ## Evidence Bundle
 

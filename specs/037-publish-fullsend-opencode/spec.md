@@ -22,6 +22,8 @@
 - Q: What evidence should satisfy the FullSend harness usability requirement?
   → A: Verify anonymous digest pulls on both architectures and run a minimal
   live FullSend harness using the digest.
+- Q: Which refs may manual dispatch publish from? → A: Only trusted `main`
+  and version-tag refs publish; dispatches from other branches do not publish.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -144,8 +146,9 @@ sources.
   findings without using them as a new repository-wide merge gate.
 - **FR-015**: Publication triggers and tags MUST follow the FullSend convention:
   main pushes publish `latest`, `dev`, and a commit-SHA tag; version tags
-  publish semver, minor, `dev`, and a commit-SHA tags; manual dispatch publishes
-  `dev` and a commit-SHA tag; pull requests MUST NOT publish.
+  publish semver, minor, `dev`, and a commit-SHA tags; manual dispatch from
+  trusted `main` or version-tag refs publishes `dev` and a commit-SHA tag;
+  manual dispatches from other branches and pull requests MUST NOT publish.
 
 ### Scope and Deferred Work
 

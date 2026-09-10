@@ -18,7 +18,8 @@ reference for a production harness.
 | Pull request | None | MUST NOT publish |
 | Push to `main` | `latest`, `dev`, commit SHA | N/A |
 | Version tag | semver, major.minor, `dev`, commit SHA | N/A |
-| Manual dispatch | `dev`, commit SHA | N/A |
+| Manual dispatch from trusted `main` or version-tag ref | `dev`, commit SHA | N/A |
+| Manual dispatch from other branch | None | MUST NOT publish |
 
 ## Required Manifest
 

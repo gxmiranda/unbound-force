@@ -6,8 +6,16 @@ FROM ghcr.io/fullsend-ai/fullsend-sandbox@${FULLSEND_SANDBOX_DIGEST}
 
 # --- opencode ---
 ARG OPENCODE_VERSION=1.18.29
+# Update OPENCODE_SHA512 from the matching npm dist.integrity value whenever
+# OPENCODE_VERSION changes.
+ARG OPENCODE_SHA512=b3220357096b613813397cd97bd4a42272567ad85baba97748d0bbeb651e5f23b46bd574c067ddf94e32002be9a703419e122c9748f640f6180b22e935a4a89a
 USER root
-RUN npm install -g opencode-ai@${OPENCODE_VERSION}
+RUN set -eux; \
+    curl -fsSL "https://registry.npmjs.org/opencode-ai/-/opencode-ai-${OPENCODE_VERSION}.tgz" \
+      -o /tmp/opencode.tgz; \
+    echo "${OPENCODE_SHA512}  /tmp/opencode.tgz" | sha512sum -c; \
+    npm install -g /tmp/opencode.tgz; \
+    rm /tmp/opencode.tgz
 
 # --- uf CLI (release tarball + SHA256 verification) ---
 ARG UF_VERSION=0.17.0
