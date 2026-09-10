@@ -105,8 +105,9 @@ Each entry follows the format: `- <change-name>: <summary>`.
 ### Added
 - publish-fullsend-opencode-image: Added a multi-architecture FullSend
   OpenCode sandbox image workflow for `linux/amd64` and `linux/arm64`.
-  Non-PR builds publish the FullSend tag convention to GHCR, while pull
-  requests run non-publishing architecture validation. Published manifest
+  Main/version-tag builds and trusted manual dispatches publish the FullSend
+  tag convention to GHCR, while pull requests and untrusted manual refs run
+  non-publishing validation. Published manifest
   digests are signed with keyless cosign and receive SLSA provenance and SPDX
   SBOM attestations, which the workflow verifies. PRs validate both
   architectures without registry write access; published digests are

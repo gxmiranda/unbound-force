@@ -116,8 +116,8 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'push' && github.ref_type == 'tag' }}
             type=sha,prefix=
             type=raw,value=latest,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
             type=raw,value=dev,enable=${{ github.event_name != 'pull_request' }}
@@ -249,6 +249,17 @@ jobs:
             exit 1
           fi
 
+      - name: Reject Stale OpenCode Integrity
+        run: |
+          if docker buildx build --platform linux/amd64 \
+            --build-arg OPENCODE_SHA512=0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 \
+            --tag fullsend-opencode:bad-opencode-integrity \
+            --file images/fullsend-opencode/Containerfile \
+            images/fullsend-opencode; then
+            echo "::error::A stale OpenCode integrity value unexpectedly passed"
+            exit 1
+          fi
+
   published-validation:
     name: Published Validation (${{ matrix.arch }})
     needs: build-and-publish
@@ -319,12 +330,44 @@ jobs:
               ! command -v ollama
             '
 
-  image-scan:
-    name: Scan Published Image
+  anonymous-validation:
+    name: Anonymous Validation (${{ matrix.arch }})
     needs: published-validation
     if: >-
       github.event_name != 'pull_request'
       && needs.published-validation.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions: {}
+    strategy:
+      fail-fast: true
+      matrix:
+        arch:
+          - amd64
+          - arm64
+    steps:
+      - name: Pull Published Image Without Credentials
+        env:
+          IMAGE: ${{ needs.published-validation.outputs.image-ref }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+        run: |
+          set -eu
+          docker pull --platform "linux/${{ matrix.arch }}" "$IMAGE"
+          docker image inspect "$IMAGE" > /dev/null
+          {
+            echo "### Anonymous ${MATRIX_ARCH} digest pull"
+            echo "Image: ${IMAGE}"
+            echo "Platform: linux/${MATRIX_ARCH}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  image-scan:
+    name: Scan Published Image
+    needs:
+      - published-validation
+      - anonymous-validation
+    if: >-
+      github.event_name != 'pull_request'
+      && needs.published-validation.result == 'success'
+      && needs.anonymous-validation.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       packages: read
@@ -361,6 +404,7 @@ jobs:
     needs:
       - build-and-publish
       - published-validation
+      - anonymous-validation
       - image-scan
     if: >-
       github.event_name != 'pull_request'

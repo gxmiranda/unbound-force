@@ -50,17 +50,22 @@ git diff --check
 
 ## Published Digest Validation
 
-After a non-PR publication, replace `<digest>` with the workflow output:
+After a non-PR publication, set `DIGEST` to the workflow output, including its
+`sha256:` prefix:
 
 ```bash
+IMAGE=ghcr.io/unbound-force/fullsend-opencode
+DIGEST=sha256:<64-hex-digest>
+IMAGE_REF="${IMAGE}@${DIGEST}"
+
 docker buildx imagetools inspect \
-  ghcr.io/unbound-force/fullsend-opencode@sha256:<digest>
+  "$IMAGE_REF"
 
 docker logout ghcr.io
 docker pull --platform linux/amd64 \
-  ghcr.io/unbound-force/fullsend-opencode@sha256:<digest>
+  "$IMAGE_REF"
 docker pull --platform linux/arm64 \
-  ghcr.io/unbound-force/fullsend-opencode@sha256:<digest>
+  "$IMAGE_REF"
 ```
 
 Verify the signature and attestations with the repository's documented
@@ -86,7 +91,7 @@ cosign verify-attestation --type https://spdx.dev/Document \
 Configure a minimal harness with:
 
 ```yaml
-image: ghcr.io/unbound-force/fullsend-opencode@sha256:<digest>
+image: ghcr.io/unbound-force/fullsend-opencode@sha256:<64-hex-digest>
 ```
 
 Run the harness once for each supported platform and record the digest, image
