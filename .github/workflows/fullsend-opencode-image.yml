@@ -156,7 +156,11 @@ jobs:
 
   pull-request-validation:
     name: PR Validation (${{ matrix.arch }})
-    if: github.event_name == 'pull_request'
+    if: >-
+      github.event_name == 'pull_request'
+      || (github.event_name == 'workflow_dispatch'
+      && github.ref != 'refs/heads/main'
+      && github.ref_type != 'tag')
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -216,7 +220,11 @@ jobs:
 
   negative-validation:
     name: Negative Validation
-    if: github.event_name == 'pull_request'
+    if: >-
+      github.event_name == 'pull_request'
+      || (github.event_name == 'workflow_dispatch'
+      && github.ref != 'refs/heads/main'
+      && github.ref_type != 'tag')
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -351,6 +359,9 @@ jobs:
           MATRIX_ARCH: ${{ matrix.arch }}
         run: |
           set -eu
+          export DOCKER_CONFIG="$RUNNER_TEMP/fullsend-opencode-anonymous-docker"
+          mkdir -p "$DOCKER_CONFIG"
+          docker logout ghcr.io >/dev/null 2>&1 || true
           docker pull --platform "linux/${{ matrix.arch }}" "$IMAGE"
           docker image inspect "$IMAGE" > /dev/null
           {

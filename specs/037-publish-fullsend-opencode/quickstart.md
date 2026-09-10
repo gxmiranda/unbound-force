@@ -68,6 +68,11 @@ docker pull --platform linux/arm64 \
   "$IMAGE_REF"
 ```
 
+If a publication-stage job fails after the candidate image is pushed, rerun
+the workflow from the same trusted ref. The rerun creates a new run-scoped
+candidate and repeats validation before promotion; stale candidate tags can be
+removed by a registry maintainer after the failure is investigated.
+
 Verify the signature and attestations with the repository's documented
 certificate identity and the workflow's OIDC issuer:
 
