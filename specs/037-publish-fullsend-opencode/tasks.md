@@ -110,7 +110,7 @@ close the implementation loop without implementing deferred hooks.
 - [x] T027 [P] Run repository CI-parity checks from `.github/workflows/`, including `go test -race -count=1 ./...`, and record unrelated baseline failures without weakening gates.
 - [x] T028 [P] Run the final local image builds and quickstart assertions from `specs/037-publish-fullsend-opencode/quickstart.md`.
 - [ ] T029 [P] Prepare the coordinated external FullSend documentation change for `fullsend/docs/runtimes.md`, including the OpenCode runtime row, security matrix, digest usage, and deferred hooks gap; keep it tracked after the image PR merges.
-- [ ] T030 Run the code review council and record the implementation-review result in `specs/037-publish-fullsend-opencode/tasks.md` before replacing PR #586 with the Speckit PR.
+- [x] T030 Run the code review council and record the implementation-review result in `specs/037-publish-fullsend-opencode/tasks.md` before replacing PR #586 with the Speckit PR.
 - [x] T031 Record the deferred OpenCode hooks integration and issue #515 relationship in `specs/037-publish-fullsend-opencode/research.md` without adding the plugin to the initial image.
 
 ---
@@ -178,7 +178,10 @@ initial implementation task set beyond documenting the integration follow-up.
 - Final local council review ran against the implementation. It confirmed the
   post-publication and external documentation tasks remain open; the npm
   registry-integrity tradeoff remains the documented issue #511 decision.
-- T030 remains open until all implementation review findings are resolved.
+- T030 council result: APPROVE for the pre-push implementation gate on
+  2026-09-10 at commit `6327046`. Findings were resolved without weakening
+  quality or governance gates. T021, T022, and T029 remain intentionally
+  pending post-publication or external follow-up work.
 - `go test -race -count=1 ./...` passes.
 - `make check` reaches the existing lint gate but reports six unrelated
   SA5011 staticcheck findings in `internal/doctor/doctor_test.go`; no gate was
