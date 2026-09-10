@@ -167,6 +167,11 @@ initial implementation task set beyond documenting the integration follow-up.
 - Both local runs reported OpenCode `1.18.29`, uf `0.17.0`, UID 998, and no
   Dewey or Ollama commands.
 - Stale checksum and unsupported architecture negative tests fail as expected.
+- The publication workflow now builds a run-specific candidate tag, waits for
+  release assets on version-tag runs, and promotes discovery tags only after
+  validation, scanning, signing, and attestation succeed.
+- Pull-request CI now runs automated stale-checksum and unsupported-architecture
+  negative builds in the `negative-validation` job.
 - `go test -race -count=1 ./...` passes.
 - `make check` reaches the existing lint gate but reports six unrelated
   SA5011 staticcheck findings in `internal/doctor/doctor_test.go`; no gate was

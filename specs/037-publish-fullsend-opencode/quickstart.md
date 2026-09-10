@@ -68,7 +68,7 @@ certificate identity and the workflow's OIDC issuer:
 
 ```bash
 IMAGE=ghcr.io/unbound-force/fullsend-opencode@sha256:<digest>
-IDENTITY='https://github.com/unbound-force/unbound-force/.github/workflows/fullsend-opencode-image.yml@.*'
+IDENTITY='https://github.com/unbound-force/unbound-force/.github/workflows/fullsend-opencode-image.yml@refs/(heads/main|tags/v.*)'
 ISSUER=https://token.actions.githubusercontent.com
 
 cosign verify --certificate-identity-regexp="$IDENTITY" \
