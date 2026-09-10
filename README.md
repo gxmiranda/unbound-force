@@ -43,7 +43,7 @@ sudo dnf install -y "$(
 )"
 ```
 
-See **[Usage Guide](docs/usage.md)** for installation instructions, common workflows, and command reference.
+See **[QUICKSTART.md](QUICKSTART.md)** for full installation instructions (macOS and Fedora/RHEL), first-use walkthrough, and platform-specific guidance. See **[Usage Guide](docs/usage.md)** for common workflows and command reference.
 
 ## Specification Framework
 

@@ -6,8 +6,10 @@ FROM ghcr.io/fullsend-ai/fullsend-sandbox@${FULLSEND_SANDBOX_DIGEST}
 
 # --- opencode ---
 ARG OPENCODE_VERSION=1.18.29
-# Update OPENCODE_SHA512 from the matching npm dist.integrity value whenever
-# OPENCODE_VERSION changes.
+# Update OPENCODE_SHA512 when OPENCODE_VERSION changes:
+#   1. Get SRI hash:   npm view opencode-ai@<version> dist.integrity
+#   2. Strip prefix:   remove the leading "sha512-"
+#   3. Convert to hex: echo "<base64>" | base64 -d | xxd -p | tr -d '\n'
 ARG OPENCODE_SHA512=b3220357096b613813397cd97bd4a42272567ad85baba97748d0bbeb651e5f23b46bd574c067ddf94e32002be9a703419e122c9748f640f6180b22e935a4a89a
 USER root
 RUN set -eux; \

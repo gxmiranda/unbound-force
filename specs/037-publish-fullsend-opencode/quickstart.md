@@ -38,8 +38,6 @@ for arch in amd64 arm64; do
 done
 ```
 
-Repeat with the arm64 image and platform.
-
 ## Static Validation
 
 ```bash
