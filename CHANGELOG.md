@@ -32,13 +32,13 @@ Each entry follows the format: `- <change-name>: <summary>`.
   Fixes: #479)
 
 ### Changed
-- constitution-v1.3.0-gatekeeping: Constitution amended to
-  v1.3.0. Gatekeeping Integrity expanded to permit narrowly
-  scoped dependency pin updates with immutable SHA
-  verification, gate preservation, rollback documentation,
-  and reproducible validation. Explicitly prohibits mutable
-  tags and other name-addressed refs. AGENTS.md aligned with
-  constitution language.
+- constitution-v1.3.0-gatekeeping: Aligned AGENTS.md
+  gatekeeping rule with constitution v1.3.0 language
+  (amended in prior PR #607). Gatekeeping Integrity now
+  permits narrowly scoped dependency pin updates with
+  immutable SHA verification, gate preservation, rollback
+  documentation, and reproducible validation. Explicitly
+  prohibits mutable tags and other name-addressed refs.
   (Fixes: #610)
 - add-todowrite-to-pipelines: Pipeline commands
   (/uf.unleash, /uf.finale, /uf.review-council,
