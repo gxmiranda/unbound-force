@@ -39,7 +39,7 @@ Each entry follows the format: `- <change-name>: <summary>`.
   and reproducible validation. Explicitly prohibits mutable
   tags and other name-addressed refs. AGENTS.md aligned with
   constitution language.
-  (Fixes: #606)
+  (Fixes: #610)
 - add-todowrite-to-pipelines: Pipeline commands
   (/uf.unleash, /uf.finale, /uf.review-council,
   /uf.address-feedback) now use TodoWrite for live
