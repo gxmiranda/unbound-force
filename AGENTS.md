@@ -156,7 +156,14 @@ These rules are non-negotiable. Violations are CRITICAL severity.
 - **Gatekeeping**: MUST NOT modify quality/governance gates
   (coverage thresholds, CRAP scores, severity definitions,
   CI flags, agent settings, constitution MUST rules, review
-  limits, workflow markers). Stop and report instead.
+  limits, workflow markers, or pinned dependency versions). A
+  pinned dependency MAY be updated only for a documented security
+  or CI reliability fix when the target immutable commit SHA is
+  verified upstream, existing gates remain enforced, rollback to
+  the previous SHA is documented, reproducible validation evidence
+  is provided, and normal review and CI approval are complete. Do
+  not use mutable tags or weaken, bypass, or disable any gate; stop
+  and report when these conditions cannot be met.
 - **Phase boundaries**: MUST NOT cross workflow phase boundaries.
   Spec phases: spec artifacts only. Implement: source code.
   Review: fixes only. Violation = process error, stop immediately.

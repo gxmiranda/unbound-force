@@ -1,21 +1,27 @@
 <!--
   SYNC IMPACT REPORT
   ==================
-  Version change: 1.1.0 → 1.2.0 (MINOR: new principle added)
+  Version change: 1.2.0 → 1.3.0 (MINOR: gatekeeping guidance expanded)
 
-  Added principles:
-    - V. Security by Default
+  Added or expanded guidance:
+    - Gatekeeping Integrity now permits narrowly bounded, verified
+      dependency pin updates without permitting gate weakening.
 
   Unchanged principles:
     - I. Autonomous Collaboration
     - II. Composability First
     - III. Observable Quality
     - IV. Testability
+    - V. Security by Default
+
+  Changed sections:
+    - Hero Constitution Alignment — hero repositories must review
+      alignment with the amended gatekeeping rule.
+    - Development Workflow — Gatekeeping Integrity defines the
+      verified pin-update exception and its required evidence.
 
   Unchanged sections:
-    - Hero Constitution Alignment
-    - Development Workflow
-    - Governance
+    - Governance amendment and versioning procedures
 
   Templates requiring updates:
     ✅ .specify/templates/plan-template.md — no changes needed;
@@ -27,10 +33,15 @@
     ✅ .specify/templates/agent-file-template.md — no changes needed.
 
   Hero constitution alignment:
-    ✅ Gaze v1.1.0 — Testability principle already matches.
-    ⚠  Gaze v1.1.0 — Will need Principle V alignment review.
-    ⚠  Website v1.0.0 — Will need Testability + Principle V
-       alignment review.
+    ⚠  All hero repositories — review alignment with the amended
+       Gatekeeping Integrity rule and open an alignment issue within
+       one release cycle where a MUST rule is affected.
+
+  Migration:
+    - Existing pins remain unchanged unless the documented exception
+      requirements are all satisfied.
+    - Agents must stop and report when provenance, validation,
+      rollback, or review evidence is missing.
 -->
 
 # Unbound Force Constitution
@@ -223,9 +234,16 @@ org constitution — they MUST NOT contradict any org principle.
   to: coverage thresholds, severity definitions, MUST/SHOULD rule
   classifications, CI flags (`-race`, `-count=1`), review iteration
   limits, agent temperature and tool-access settings, and pinned
-  dependency versions. When an implementation cannot meet a gate,
-  the agent MUST report the failure and stop rather than weakening
-  the gate.
+  dependency versions. An agent MAY update a pinned dependency only
+  when all of the following conditions are met: the update addresses
+  a documented security or CI reliability fix; the target immutable
+  commit SHA is verified against the upstream release or source; all
+  existing security and quality gates remain enforced; a rollback path
+  to the previous SHA is documented; reproducible validation evidence
+  is provided; and normal review and CI approval are completed. Pins
+  MUST NOT be changed to mutable tags or other name-addressed refs.
+  Agents MUST report and stop when any condition is missing or when a
+  change would weaken, bypass, or disable a gate.
 - **Phase Discipline**: Each pipeline phase (specify,
   clarify, plan, tasks, analyze, checklist, implement,
   review) MUST produce only its designated artifacts.
@@ -272,4 +290,4 @@ and project-specific guidance.
   implicit priority over another; resolution is context-dependent
   and requires written justification.
 
-**Version**: 1.2.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-06-01
+**Version**: 1.3.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-09-14
