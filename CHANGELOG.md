@@ -32,6 +32,14 @@ Each entry follows the format: `- <change-name>: <summary>`.
   Fixes: #479)
 
 ### Changed
+- constitution-v1.3.0-gatekeeping: Constitution amended to
+  v1.3.0. Gatekeeping Integrity expanded to permit narrowly
+  scoped dependency pin updates with immutable SHA
+  verification, gate preservation, rollback documentation,
+  and reproducible validation. Explicitly prohibits mutable
+  tags and other name-addressed refs. AGENTS.md aligned with
+  constitution language.
+  (Fixes: #606)
 - add-todowrite-to-pipelines: Pipeline commands
   (/uf.unleash, /uf.finale, /uf.review-council,
   /uf.address-feedback) now use TodoWrite for live
