@@ -92,6 +92,7 @@ access to the target repository:
 | triage | https://github.com/apps/fullsend-ai-triage/installations/new |
 | coder | https://github.com/apps/fullsend-ai-coder/installations/new |
 | review | https://github.com/apps/fullsend-ai-review/installations/new |
+| fix | https://github.com/apps/fullsend-ai-fix/installations/new |
 | retro | https://github.com/apps/fullsend-ai-retro/installations/new |
 | prioritize | https://github.com/apps/fullsend-ai-prioritize/installations/new |
 
@@ -115,7 +116,7 @@ To enable only specific agents:
 fullsend github setup ORG/REPO \
   --inference-project "$GCP_PROJECT" \
   --inference-wif-provider "$WIF_PROVIDER_URL" \
-  --agents triage,review
+  --agents triage,review,fix
 ```
 
 ### Step 6 — Verify
@@ -306,6 +307,6 @@ fullsend github setup ORG/REPO --runtime pi
 Per-agent runtime overrides are also supported:
 
 ```bash
-fullsend agent set code --runtime claude
+fullsend agent set coder --runtime claude
 fullsend agent set triage --runtime pi
 ```
