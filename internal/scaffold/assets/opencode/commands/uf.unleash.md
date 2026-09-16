@@ -525,9 +525,9 @@ logic used by `/uf.review-council` and `/uf.review-pr`.
    Execute each `[P]` task sequentially via the
    `cobalt-crush-dev` agent, same as non-`[P]` tasks.
 
-   **SwarmMail file reservations**: if `comms_reserve`
+   **Comms file reservations**: if `comms_reserve`
    is available, reserve file paths for each parallel
-   worker before spawning. If SwarmMail is NOT available,
+   worker before spawning. If Comms is NOT available,
    proceed without file locks -- worktree isolation
    provides sufficient protection for parallel workers.
 

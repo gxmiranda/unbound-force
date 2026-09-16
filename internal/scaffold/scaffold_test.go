@@ -7646,34 +7646,43 @@ func TestNoObsoleteToolNames(t *testing.T) {
 		"swarmmail_reserve",
 	}
 
-	openCodeDir := filepath.Join(root, ".opencode")
-	err := filepath.Walk(openCodeDir, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil || info.IsDir() {
-			return walkErr
-		}
-		if filepath.Ext(path) != ".md" {
-			return nil
-		}
+	// Walk both the canonical .opencode/ directory and the
+	// embedded scaffold mirror to catch obsolete tool names
+	// in either location.
+	dirs := []string{
+		filepath.Join(root, ".opencode"),
+		filepath.Join(root, "internal", "scaffold", "assets", "opencode"),
+	}
+	for _, dir := range dirs {
+		dirLabel, _ := filepath.Rel(root, dir)
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, walkErr error) error {
+			if walkErr != nil || info.IsDir() {
+				return walkErr
+			}
+			if filepath.Ext(path) != ".md" {
+				return nil
+			}
 
-		content, readErr := os.ReadFile(path)
-		if readErr != nil {
-			t.Errorf("read %s: %v", path, readErr)
-			return nil
-		}
+			content, readErr := os.ReadFile(path)
+			if readErr != nil {
+				t.Errorf("read %s: %v", path, readErr)
+				return nil
+			}
 
-		relPath, _ := filepath.Rel(root, path)
-		lines := strings.Split(string(content), "\n")
-		for i, line := range lines {
-			for _, pattern := range obsoletePatterns {
-				if strings.Contains(line, pattern) {
-					t.Errorf("%s:%d: obsolete tool name %q (issue #617)\n  line: %s",
-						relPath, i+1, pattern, strings.TrimSpace(line))
+			relPath, _ := filepath.Rel(root, path)
+			lines := strings.Split(string(content), "\n")
+			for i, line := range lines {
+				for _, pattern := range obsoletePatterns {
+					if strings.Contains(line, pattern) {
+						t.Errorf("%s:%d: obsolete tool name %q (issue #617)\n  line: %s",
+							relPath, i+1, pattern, strings.TrimSpace(line))
+					}
 				}
 			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("walk %s: %v", dirLabel, err)
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("walk .opencode/: %v", err)
 	}
 }

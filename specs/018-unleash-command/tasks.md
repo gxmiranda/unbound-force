@@ -87,11 +87,11 @@ detection logic.
 
 **Independent Test**: Phase with 4 `[P]` tasks spawns 4 parallel workers.
 
-- [x] T017 [US4] Update Step 5 (Implement) to add parallel execution: for each phase, separate tasks into sequential (no `[P]`) and parallel (`[P]`) groups, run sequential tasks first, then for parallel tasks check if `swarm_worktree_create` is available in `.opencode/command/unleash.md`
-- [x] T018 [US4] Write the parallel worker spawning logic: for each `[P]` task call `swarm_worktree_create` to create a dedicated worktree, then `swarm_spawn_subtask` to spawn a worker with the task description, wait for all workers to complete in `.opencode/command/unleash.md`
-- [x] T019 [US4] Write the worktree merge logic: after all parallel workers complete, call `swarm_worktree_merge` for each worktree, attempt auto-resolution on merge conflicts (accept both changes), if auto-resolution fails exit to human with conflict details, call `swarm_worktree_cleanup` after merge in `.opencode/command/unleash.md`
+- [x] T017 [US4] Update Step 5 (Implement) to add parallel execution: for each phase, separate tasks into sequential (no `[P]`) and parallel (`[P]`) groups, run sequential tasks first, then for parallel tasks check if `forge_worktree_create` is available in `.opencode/command/unleash.md`
+- [x] T018 [US4] Write the parallel worker spawning logic: for each `[P]` task call `forge_worktree_create` to create a dedicated worktree, then `forge_spawn_subtask` to spawn a worker with the task description, wait for all workers to complete in `.opencode/command/unleash.md`
+- [x] T019 [US4] Write the worktree merge logic: after all parallel workers complete, call `forge_worktree_merge` for each worktree, attempt auto-resolution on merge conflicts (accept both changes), if auto-resolution fails exit to human with conflict details, call `forge_worktree_cleanup` after merge in `.opencode/command/unleash.md`
 - [x] T020 [US4] Write the parallel worker failure handling: if any worker fails stop all other workers (instruct agent to not spawn more), report the failure with error context, exit to human per FR-011 in `.opencode/command/unleash.md`
-- [x] T021 [US4] Write the graceful degradation for missing Swarm worktree tools: if `swarm_worktree_create` is not available, fall back to sequential execution for `[P]` tasks with an informational note, per FR-017 in `.opencode/command/unleash.md`
+- [x] T021 [US4] Write the graceful degradation for missing Swarm worktree tools: if `forge_worktree_create` is not available, fall back to sequential execution for `[P]` tasks with an informational note, per FR-017 in `.opencode/command/unleash.md`
 
 **Checkpoint**: US4 complete. Parallel execution with worktrees and fallback works.
 
@@ -116,7 +116,7 @@ detection logic.
 **Independent Test**: Run with plan.md + tasks.md existing, verify skips to spec review.
 
 - [x] T023 [US6] Write the step progress announcement: at the start of each `/unleash` run, display which steps are detected as complete (✓) and which step it's resuming from, e.g., "Detected: clarify ✓ plan ✓ tasks ✗ — Resuming at step 3/8: Generating tasks..." in `.opencode/command/unleash.md`
-- [x] T024 [US6] Write graceful degradation notes for all optional tools: Dewey (fall back to human questions), Gaze (skip Phase 1b in code review), Swarm worktrees (fall back to sequential), Hivemind (skip retrospective), SwarmMail (proceed without locks) -- add these as inline checks at each step that uses the tool in `.opencode/command/unleash.md`
+- [x] T024 [US6] Write graceful degradation notes for all optional tools: Dewey (fall back to human questions), Gaze (skip Phase 1b in code review), Swarm worktrees (fall back to sequential), Hivemind (skip retrospective), Comms (proceed without locks) -- add these as inline checks at each step that uses the tool in `.opencode/command/unleash.md`
 
 **Checkpoint**: US6 complete. Resumability and degradation work.
 
