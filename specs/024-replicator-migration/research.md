@@ -251,10 +251,10 @@ plugin" and need text updates?
 
 1. `.opencode/command/unleash.md` (lines 42, 393): References
    "Swarm plugin" in graceful degradation context. These refer
-   to the Swarm MCP tools (like `swarm_worktree_list`), not the
-   npm plugin package. The tool names don't change — Replicator
-   provides the same MCP tools. However, the install hint text
-   should change from "Install the Swarm plugin" to "Install
+   to the MCP tools (like `forge_worktree_list`), not the npm
+   plugin package. The tool names change: `swarm_*` → `forge_*`
+   and `swarmmail_*` → `comms_*`. The install hint text should
+   also change from "Install the Swarm plugin" to "Install
    Replicator".
 
 2. Corresponding scaffold asset at
