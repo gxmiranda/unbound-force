@@ -96,10 +96,12 @@ access to the target repository:
 | retro | https://github.com/apps/fullsend-ai-retro/installations/new |
 | prioritize | https://github.com/apps/fullsend-ai-prioritize/installations/new |
 
-Install only the apps for the agents you want to enable. You
-must also pass `--agents` in the next step to match.
+Install only the apps for the agents you want to enable. If
+you install a subset, pass `--agents` in Step 5 to match.
 
 ### Step 5 — Configure GitHub
+
+To enable **all** agents (install all apps in Step 4 first):
 
 ```bash
 fullsend github setup ORG/REPO \
@@ -107,10 +109,8 @@ fullsend github setup ORG/REPO \
   --inference-wif-provider "$WIF_PROVIDER_URL"
 ```
 
-This creates the workflow file, secrets, and variables on the
-repository. It prompts for the runtime (default: `claude`).
-
-To enable only specific agents:
+To enable **specific** agents only (must match the apps
+installed in Step 4):
 
 ```bash
 fullsend github setup ORG/REPO \
@@ -118,6 +118,9 @@ fullsend github setup ORG/REPO \
   --inference-wif-provider "$WIF_PROVIDER_URL" \
   --agents triage,review,fix
 ```
+
+This creates the workflow file, secrets, and variables on the
+repository. It prompts for the runtime (default: `claude`).
 
 ### Step 6 — Verify
 
@@ -137,7 +140,6 @@ After setup, the repository should have:
 | `FULLSEND_MINT_URL` | Variable | Token minting service URL |
 | `FULLSEND_GCP_REGION` | Variable | GCP region for Vertex AI |
 | `FULLSEND_PROJECT_NUMBER` | Variable | GitHub Projects V2 number (Prioritize agent) |
-| `FULLSEND_REVIEW_CLIENT_ID` | Variable | OAuth client ID for the review agent app |
 
 Verify with:
 
