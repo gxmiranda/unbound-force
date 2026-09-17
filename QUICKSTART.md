@@ -23,7 +23,7 @@ adapted for other AI coding tools.
   See [OpenCode provider docs](https://opencode.ai/docs/providers)
   for setup (Anthropic, OpenAI, Google, AWS Bedrock,
   and others supported).
-- **Go 1.24+** -- only if your project is Go-based
+- **Go 1.25+** -- only if your project is Go-based
   (used by review council CI checks and Gaze quality
   analysis)
 
