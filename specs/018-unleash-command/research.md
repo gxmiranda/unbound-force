@@ -34,11 +34,11 @@ Each probe is a simple file existence or content check.
 
 ## R2: Parallel Worker Orchestration
 
-**Decision**: Use Swarm's `swarm_spawn_subtask` +
-`swarm_worktree_create` for `[P]`-marked tasks within
+**Decision**: Use Swarm's `forge_spawn_subtask` +
+`forge_worktree_create` for `[P]`-marked tasks within
 each phase. Each worker gets a dedicated worktree.
 After all workers complete, merge worktrees back via
-`swarm_worktree_merge`. Attempt auto-resolution on
+`forge_worktree_merge`. Attempt auto-resolution on
 merge conflicts.
 
 **Rationale**: Worktrees provide git-level isolation
@@ -61,7 +61,7 @@ the creation/merge lifecycle.
 
 **Alternatives considered**:
 - File reservation only (no worktrees): rejected
-  because `swarmmail_reserve` prevents conflicts but
+  because `comms_reserve` prevents conflicts but
   doesn't provide git isolation for clean merges.
 - Branch-per-task (no worktrees): rejected because
   branch management is more complex than worktrees

@@ -32,22 +32,22 @@ step has a detection condition for resumability.
 For each `[P]`-marked task in a phase:
 
 ```
-1. swarm_worktree_create(project, task_id, start_commit)
+1. forge_worktree_create(project, task_id, start_commit)
    → worktree path
 
-2. swarm_spawn_subtask(bead_id, epic_id, title, files)
+2. forge_spawn_subtask(bead_id, epic_id, title, files)
    → worker executes in worktree
 
 3. Worker completes:
    - Commits changes in worktree
    - Marks task [x] in tasks.md
-   - Reports via swarm_complete()
+   - Reports via forge_complete()
 
-4. swarm_worktree_merge(project, task_id)
+4. forge_worktree_merge(project, task_id)
    → cherry-picks commits to main branch
    → auto-resolves conflicts if possible
 
-5. swarm_worktree_cleanup(project, task_id)
+5. forge_worktree_cleanup(project, task_id)
    → removes worktree
 ```
 
@@ -82,4 +82,4 @@ Phase N:
 | Swarm worktrees | Parallel `[P]` execution | Sequential execution |
 | Swarm workers | Parallel task spawning | Single Cobalt-Crush agent |
 | Hivemind | Retrospective learning storage | Retrospective skipped |
-| SwarmMail | File reservation for workers | Workers proceed without locks |
+| Comms | File reservation for workers | Workers proceed without locks |

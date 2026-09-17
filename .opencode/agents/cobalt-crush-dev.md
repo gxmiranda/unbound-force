@@ -161,19 +161,19 @@ If a task depends on another task that is not yet complete:
 ## Swarm Coordination
 
 When operating as a Swarm worker (spawned via
-`swarm_spawn_subtask()`), follow this protocol:
+`forge_spawn_subtask()`), follow this protocol:
 
 ### File Reservation Protocol
-Before editing any file, MUST call `swarmmail_reserve()`
+Before editing any file, MUST call `comms_reserve()`
 with the file paths you intend to modify. This prevents
 conflicts with parallel workers:
 ```
-swarmmail_reserve({ paths: ["internal/doctor/checks.go"], reason: "Implementing Ollama check" })
+comms_reserve({ paths: ["internal/doctor/checks.go"], reason: "Implementing Ollama check" })
 ```
 
 ### Session Lifecycle
 Every session MUST end with:
-1. Call `swarm_complete()` with `files_touched` listing all
+1. Call `forge_complete()` with `files_touched` listing all
    modified files
 2. Call `hive_sync()` to persist work items to git
 3. Verify `git push` succeeds
@@ -181,11 +181,11 @@ Every session MUST end with:
 **The plane is not landed until `git push` succeeds.**
 
 ### Progress Reporting
-SHOULD call `swarm_progress()` at milestones (25%, 50%,
+SHOULD call `forge_progress()` at milestones (25%, 50%,
 75% completion) so the coordinator can track status.
 
 ### When NOT Operating Under Swarm
-If you are invoked directly (not via `swarm_spawn_subtask`),
+If you are invoked directly (not via `forge_spawn_subtask`),
 ignore this section. These protocols only apply when
 Swarm is coordinating parallel workers.
 

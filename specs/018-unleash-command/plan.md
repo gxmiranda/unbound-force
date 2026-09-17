@@ -25,8 +25,8 @@ updates only (file count and asset list).
 **Primary Dependencies**: Existing slash commands
 (`/speckit.plan`, `/speckit.tasks`, `/review-council`,
 `/cobalt-crush`), Swarm MCP tools
-(`swarm_spawn_subtask`, `swarm_worktree_create`,
-`swarm_worktree_merge`, `swarm_worktree_cleanup`),
+(`forge_spawn_subtask`, `forge_worktree_create`,
+`forge_worktree_merge`, `forge_worktree_cleanup`),
 Dewey MCP tools (`dewey_semantic_search`,
 `dewey_search`), Hivemind tools (`hivemind_store`)
 **Storage**: N/A (orchestrates existing tools)

@@ -7622,3 +7622,67 @@ func TestContentPortability_CuratorAgent(t *testing.T) {
 		t.Error("divisor-curator.md MUST reference CP-001 (issue #593)")
 	}
 }
+
+// TestNoObsoleteToolNames verifies that .opencode/ files do not
+// contain obsolete Swarm/SwarmMail tool names that were renamed
+// in Replicator. Regression guard for issue #617.
+func TestNoObsoleteToolNames(t *testing.T) {
+	root := findProjectRoot(t)
+	if root == "" {
+		t.Skip("project root not found; skipping obsolete tool name check")
+	}
+
+	// Obsolete tool name patterns (function-call style with
+	// underscore, not general prose usage of "swarm").
+	obsoletePatterns := []string{
+		"swarm_spawn_subtask",
+		"swarm_complete",
+		"swarm_progress",
+		"swarm_status",
+		"swarm_worktree_list",
+		"swarm_worktree_cleanup",
+		"swarm_worktree_create",
+		"swarm_worktree_merge",
+		"swarmmail_reserve",
+	}
+
+	// Walk both the canonical .opencode/ directory and the
+	// embedded scaffold mirror to catch obsolete tool names
+	// in either location.
+	dirs := []string{
+		filepath.Join(root, ".opencode"),
+		filepath.Join(root, "internal", "scaffold", "assets", "opencode"),
+	}
+	for _, dir := range dirs {
+		dirLabel, _ := filepath.Rel(root, dir)
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, walkErr error) error {
+			if walkErr != nil || info.IsDir() {
+				return walkErr
+			}
+			if filepath.Ext(path) != ".md" {
+				return nil
+			}
+
+			content, readErr := os.ReadFile(path)
+			if readErr != nil {
+				t.Errorf("read %s: %v", path, readErr)
+				return nil
+			}
+
+			relPath, _ := filepath.Rel(root, path)
+			lines := strings.Split(string(content), "\n")
+			for i, line := range lines {
+				for _, pattern := range obsoletePatterns {
+					if strings.Contains(line, pattern) {
+						t.Errorf("%s:%d: obsolete tool name %q (issue #617)\n  line: %s",
+							relPath, i+1, pattern, strings.TrimSpace(line))
+					}
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("walk %s: %v", dirLabel, err)
+		}
+	}
+}
